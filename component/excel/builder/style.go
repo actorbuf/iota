@@ -2,7 +2,7 @@ package builder
 
 import (
 	"fmt"
-	util2 "github.com/actorbuf/iota/component/excel/util"
+	"github.com/actorbuf/iota/component/excel/util"
 	"strconv"
 
 	"github.com/xuri/excelize/v2"
@@ -38,7 +38,7 @@ type Cell struct {
 // GetCell 获取单元格的string信息
 func (cell *Cell) GetCell() string {
 	if cell.CellNum != nil {
-		return util2.ToLine(cell.CellNum.Column) + strconv.FormatInt(int64(cell.CellNum.Line), 10)
+		return util.ToLine(cell.CellNum.Column) + strconv.FormatInt(int64(cell.CellNum.Line), 10)
 	}
 	if cell.CellChar != nil {
 		return cell.CellChar.Cell
@@ -174,7 +174,7 @@ type ColWidth struct {
 
 func (colWidth *ColWidth) GetHCell() string {
 	if colWidth.StartColumn > 0 {
-		return util2.ToLine(colWidth.StartColumn)
+		return util.ToLine(colWidth.StartColumn)
 	}
 
 	return colWidth.StartColumnChar
@@ -182,7 +182,7 @@ func (colWidth *ColWidth) GetHCell() string {
 
 func (colWidth *ColWidth) GetVCell() string {
 	if colWidth.EndColumn > 0 {
-		return util2.ToLine(colWidth.EndColumn)
+		return util.ToLine(colWidth.EndColumn)
 	}
 
 	return colWidth.EndColumnChar

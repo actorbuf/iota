@@ -1,8 +1,8 @@
 package builder
 
 import (
-	error3 "github.com/actorbuf/iota/component/excel/error"
-	util2 "github.com/actorbuf/iota/component/excel/util"
+	error2 "github.com/actorbuf/iota/component/excel/error"
+	"github.com/actorbuf/iota/component/excel/util"
 	"strconv"
 
 	"github.com/xuri/excelize/v2"
@@ -198,7 +198,7 @@ func (sheet *sheet) exportInit() error {
 func (sheet *sheet) keepNum() {
 	for i := range sheet.lines {
 		for lineIndex := range sheet.lines[i] {
-			is, s := util2.NumToString(sheet.lines[i][lineIndex])
+			is, s := util.NumToString(sheet.lines[i][lineIndex])
 			if is {
 				sheet.lines[i][lineIndex] = s
 			}
@@ -224,7 +224,7 @@ func (sheet *sheet) Export() error {
 			// 先填充头
 			for index, headData := range head {
 				lineIStr := strconv.FormatInt(int64(headI+1), 10)
-				err := f.SetCellValue(sheet.sheetName, util2.ToLine(index+1)+lineIStr, headData)
+				err := f.SetCellValue(sheet.sheetName, util.ToLine(index+1)+lineIStr, headData)
 				if err != nil {
 					return err
 				}
@@ -239,11 +239,11 @@ func (sheet *sheet) Export() error {
 	for i, line := range sheet.lines {
 		// 检测行数，防止覆盖
 		if sheet.isCoverLine(i) {
-			return error3.NewLineCoverError(i)
+			return error2.NewLineCoverError(i)
 		}
 		for lineIndex := range line {
 			lineIStr := strconv.FormatInt(int64(i), 10)
-			err := f.SetCellValue(sheet.sheetName, util2.ToLine(lineIndex+1)+lineIStr, line[lineIndex])
+			err := f.SetCellValue(sheet.sheetName, util.ToLine(lineIndex+1)+lineIStr, line[lineIndex])
 			if err != nil {
 				return err
 			}

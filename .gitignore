@@ -16,3 +16,4 @@
 
 .idea
 go.sum
+component/excel/try/*.xlsx

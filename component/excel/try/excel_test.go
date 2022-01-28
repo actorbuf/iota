@@ -19,7 +19,7 @@ func TestToChar(t *testing.T) {
 }
 
 func TestExportArr(t *testing.T) {
-	filename := fmt.Sprintf("G:\\tmp\\excel_%s.xlsx", time.Now().Format("20060102150405"))
+	filename := fmt.Sprintf("excel_%s.xlsx", time.Now().Format("20060102150405"))
 	fd, err := os.Create(filename)
 	defer func() {
 		_ = fd.Close()
@@ -44,7 +44,7 @@ func TestExportArr(t *testing.T) {
 }
 
 func TestExportStrut(t *testing.T) {
-	filename := fmt.Sprintf("G:\\tmp\\excel_%s.xlsx", time.Now().Format("20060102150405"))
+	filename := fmt.Sprintf("excel_%s.xlsx", time.Now().Format("20060102150405"))
 	fd, err := os.Create(filename)
 	defer func() {
 		_ = fd.Close()

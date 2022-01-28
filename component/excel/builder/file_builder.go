@@ -2,13 +2,13 @@ package builder
 
 import (
 	"fmt"
+	"github.com/xuri/excelize/v2"
 	"io"
 	"net/url"
 	"path/filepath"
 	"time"
 
 	"github.com/actorbuf/iota/generator/uuid"
-	"github.com/gin-gonic/gin"
 )
 
 type File struct {
@@ -108,10 +108,4 @@ func (file *File) ExportWeb(webContext ExportWebInterface) error {
 	webContext.Header("pragma", "public")
 	webContext.Header("etag", uuid.TimeUUID().String())
 	return file.f.Write(webContext.GetWriter())
-}
-
-// ExportGin 导出到Gin
-func (file *File) ExportGin(ctx *gin.Context) error {
-	web := ExportGin{ctx}
-	return file.ExportWeb(&web)
 }
