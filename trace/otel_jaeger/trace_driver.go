@@ -7,7 +7,6 @@ import (
 	"github.com/actorbuf/iota/trace"
 	"github.com/opentracing/opentracing-go"
 	otelo "go.opentelemetry.io/otel/bridge/opentracing"
-	otelr "go.opentelemetry.io/otel/trace"
 	otelt "go.opentelemetry.io/otel/trace"
 	"strings"
 )
@@ -21,13 +20,13 @@ var DefaultOpentelemetryDriver trace.Driver = (*OpentelemetryDriver)(nil)
 const ctxKeyOtelSpan = "iota/trace.span.otel"
 
 // getOtelSpanFromCtx get otel span from ctx
-func getOtelSpanFromCtx(ctx context.Context) otelr.Span {
+func getOtelSpanFromCtx(ctx context.Context) otelt.Span {
 	otelSpan := ctx.Value(ctxKeyOtelSpan)
 	if otelSpan != nil {
-		span, _ := otelSpan.(otelr.Span)
+		span, _ := otelSpan.(otelt.Span)
 		return span
 	}
-	span := otelr.SpanFromContext(ctx)
+	span := otelt.SpanFromContext(ctx)
 	if span.IsRecording() {
 		return span
 	}
@@ -83,7 +82,7 @@ func (d *OpentelemetryDriver) InjectSpanAfterNew(ctx trace.MapCtx, span opentrac
 	if otSpan == nil {
 		// inject otel Span
 		oCtx := opentracing.ContextWithSpan(ctx, span)
-		otSpan = otelr.SpanFromContext(oCtx)
+		otSpan = otelt.SpanFromContext(oCtx)
 		if otSpan.IsRecording() {
 			ctx.Set(ctxKeyOtelSpan, otSpan)
 		}
@@ -114,7 +113,7 @@ func (d *OpentelemetryDriver) ObtainTraceID(ctx context.Context) string {
 func (d *OpentelemetryDriver) GetTraceStrFromSpan(span opentracing.Span) string {
 	// use opentracing.ContextWithSpan to set opentracing.span and ot.Span into ctx.
 	ctx := opentracing.ContextWithSpan(context.Background(), span)
-	otSpan := otelr.SpanFromContext(ctx)
+	otSpan := otelt.SpanFromContext(ctx)
 	if !otSpan.IsRecording() {
 		return ""
 	}
