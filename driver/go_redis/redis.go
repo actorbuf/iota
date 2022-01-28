@@ -12,7 +12,7 @@ import (
 	"github.com/go-redis/redis_rate/v9"
 	"github.com/opentracing/opentracing-go"
 	flog "github.com/opentracing/opentracing-go/log"
-	"gitlab.heywoods.cn/go-sdk/omega/trace"
+	"github.com/actorbuf/iota/trace"
 )
 
 var (
