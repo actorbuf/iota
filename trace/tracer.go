@@ -231,12 +231,6 @@ func ObtainTraceID(ctx context.Context) string {
 	return _driver.ObtainTraceID(ctx)
 }
 
-// GetTraceIDFromSpan get TraceID from Span
-// Deprecated: Use GetTraceStrFromSpan. This call TraceID but return TraceStr.
-func GetTraceIDFromSpan(span opentracing.Span) string {
-	return GetTraceStrFromSpan(span)
-}
-
 // GetTraceStrFromSpan get TraceStr from Span
 func GetTraceStrFromSpan(span opentracing.Span) string {
 	if IsNoopSpan(span) {
@@ -246,12 +240,6 @@ func GetTraceStrFromSpan(span opentracing.Span) string {
 		return ""
 	}
 	return _driver.GetTraceStrFromSpan(span)
-}
-
-// GetTraceIDFromCtx get TraceID from Span
-// Deprecated: Use GetTraceStrFromCtx. This call TraceID but return TraceStr.
-func GetTraceIDFromCtx(ctx context.Context) string {
-	return GetTraceStrFromCtx(ctx)
 }
 
 // GetTraceStrFromCtx get TraceStr from ctx
@@ -266,16 +254,6 @@ func GetTraceStrFromCtx(ctx context.Context) string {
 	return _driver.GetTraceStrFromCtx(ctx)
 }
 
-// NewChildSpanFromTriceId new ChildSpan From TriceId
-// Deprecated: Use NewChildSpanFromTraceStr.
-// 1. update Name
-// 2. use traceStr replace traceID; need complete trace string include traceID and parentSpanID。
-// 3. like:
-// 	3.1 Opentelemetry: traceStr = "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01", "4bf92f3577b34da6a3ce929d0e0e4736" is traceID and "00f067aa0ba902b7" is parentSpanID.
-func NewChildSpanFromTriceId(childServerName string, traceStr string) (opentracing.Span, error) {
-	return NewChildSpanFromTraceStr(childServerName, traceStr)
-}
-
 // NewChildSpanFromTraceStr new ChildSpan From TraceStr
 // TraceStr:
 // 	 - TraceOpentelemetry: "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
@@ -284,14 +262,6 @@ func NewChildSpanFromTraceStr(childServerName string, traceStr string) (opentrac
 		return GetNoopSpan(""), nil
 	}
 	return _driver.NewChildSpanFromTraceStr(childServerName, traceStr)
-}
-
-// NewContextFromTriceId new Ctx From TriceId
-// Deprecated: Use NewContextFromTraceStr. update Name; use TraceStr but call TriceId
-// TraceStr:
-// 	 - TraceOpentelemetry: "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
-func NewContextFromTriceId(ctx context.Context, childServerName string, traceStr string) (context.Context, error) {
-	return NewContextFromTraceStr(ctx, childServerName, traceStr)
 }
 
 // NewContextFromTraceStr new Ctx From TraceStr
