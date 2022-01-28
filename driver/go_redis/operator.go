@@ -10,10 +10,6 @@ import (
 	"time"
 )
 
-// stdMap 全局redis连接句柄池
-// key string 是一个实例的名字
-// value RedisOperator 是连接句柄
-
 var IotaRedisPools RedisOperator = &RedisPool{}
 
 var iotaRedisPoolsLock sync.Mutex
