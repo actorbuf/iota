@@ -2,27 +2,30 @@ package goRedis
 
 import (
 	"context"
-	"sync"
-	"time"
-
+	"errors"
 	"github.com/go-redis/cache/v8"
 	"github.com/go-redis/redis/v8"
 	"github.com/go-redis/redis_rate/v9"
+	"sync"
+	"time"
 )
 
 // stdMap 全局redis连接句柄池
 // key string 是一个实例的名字
 // value RedisOperator 是连接句柄
-var stdRedisPool RedisOperator
+
+var IotaRedisPools RedisOperator = &RedisPool{}
+
+var iotaRedisPoolsLock sync.Mutex
 
 type RedisPool struct {
-	Pool sync.Map
+	Pool map[string]redis.UniversalClient
 }
 
 // RedisOperator redis 多实例操作接口
 type RedisOperator interface {
 	// Create 初始化一个连接 失败时将panic
-	Create(key string, opt *Config)
+	Create(key string, opt *redis.UniversalOptions) error
 	// Delete 移除一个连接
 	Delete(key string)
 	// GetConn 获取一个Redis连接
@@ -38,63 +41,60 @@ type RedisOperator interface {
 	GetLimiter(key string) (*redis_rate.Limiter, bool)
 }
 
-func GetRedisPool() RedisOperator {
-	if stdRedisPool == nil {
-		stdRedisPool = &RedisPool{}
-	}
-	return stdRedisPool
-}
-
 // Create 初始化一个连接 失败时将panic
-func (rp *RedisPool) Create(key string, opt *Config) {
-	client := redis.NewUniversalClient(&redis.UniversalOptions{
-		Addrs:        []string{opt.Address},
-		DB:           opt.Db,
-		Password:     opt.Password,
-		PoolSize:     opt.MaxActive,
-		MinIdleConns: opt.MaxIdle,
-	})
-	err := client.Ping(context.Background()).Err()
-	if err != nil {
-		panic(err)
+func (rp *RedisPool) Create(key string, opt *redis.UniversalOptions) error {
+	iotaRedisPoolsLock.Lock()
+
+	if _, ok := rp.Pool[key]; !ok {
+		client := redis.NewUniversalClient(opt)
+		err := client.Ping(context.Background()).Err()
+		if err != nil {
+			return err
+		}
+		rp.Pool[key] = client
+	} else {
+		return errors.New("redis connect key exist")
 	}
-	if _, isLoad := rp.Pool.LoadOrStore(key, client); isLoad {
-		panic("redis connect key exist")
-	}
+
+	iotaRedisPoolsLock.Unlock()
+
+	return nil
 }
 
 // Delete 移除一个连接
 func (rp *RedisPool) Delete(key string) {
-	rp.Pool.Delete(key)
+	iotaRedisPoolsLock.Lock()
+	delete(rp.Pool, key)
+	iotaRedisPoolsLock.Unlock()
 }
 
 // GetConn 获取一个Redis连接
 func (rp *RedisPool) GetConn(key string) (redis.UniversalClient, bool) {
-	v, exist := rp.Pool.Load(key)
+	client, exist := rp.Pool[key]
 	if !exist {
 		return nil, false
 	}
-	return v.(redis.UniversalClient), true
+	return client, true
 }
 
 // GetCache 使用 github.com/go-redis/cache/v8 库，基于 cache.NewTinyLFU 的本地缓存对象
 func (rp *RedisPool) GetCache(key string) (*cache.Cache, bool) {
-	client, exist := rp.Pool.Load(key)
+	client, exist := rp.Pool[key]
 	if !exist {
 		return nil, false
 	}
-	cache := cache.New(&cache.Options{
+	c := cache.New(&cache.Options{
 		Redis:        client.(redis.UniversalClient),
 		LocalCache:   cache.NewTinyLFU(1<<10, time.Hour*24),
 		StatsEnabled: false,
 	})
 
-	return cache, true
+	return c, true
 }
 
 // GetLimiter 基于github.com/go-redis/redis_rate实现的令牌桶限制器
 func (rp *RedisPool) GetLimiter(key string) (*redis_rate.Limiter, bool) {
-	client, exist := rp.Pool.Load(key)
+	client, exist := rp.Pool[key]
 	if !exist {
 		return nil, false
 	}
