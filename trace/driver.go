@@ -12,6 +12,8 @@ type Driver interface {
 	NewTracerContext(ctx context.Context, span opentracing.Span) context.Context
 	// ObtainTraceID ctx 中获取 traceID
 	ObtainTraceID(ctx context.Context) string
+	// ObtainSpanID ctx 中获取 spanID
+	ObtainSpanID(ctx context.Context) string
 	// GetTraceStrFromSpan span中获取 traceStr
 	GetTraceStrFromSpan(span opentracing.Span) string
 	// GetTraceStrFromCtx ctx 中获取 traceStr

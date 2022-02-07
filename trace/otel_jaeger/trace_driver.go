@@ -109,6 +109,16 @@ func (d *OpentelemetryDriver) ObtainTraceID(ctx context.Context) string {
 	return ""
 }
 
+
+// ObtainSpanID ctx 中获取 spanID
+func (d *OpentelemetryDriver) ObtainSpanID(ctx context.Context) string {
+	otelSpan := getOtelSpanFromCtx(ctx)
+	if otelSpan != nil && otelSpan.IsRecording() {
+		return otelSpan.SpanContext().SpanID().String()
+	}
+	return ""
+}
+
 // GetTraceStrFromSpan span中获取 traceStr
 func (d *OpentelemetryDriver) GetTraceStrFromSpan(span opentracing.Span) string {
 	// use opentracing.ContextWithSpan to set opentracing.span and ot.Span into ctx.

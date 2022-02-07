@@ -2,7 +2,7 @@ package goRedis
 
 import (
 	"context"
-	"github.com/actorbuf/iota/library/jaeger"
+	"github.com/actorbuf/iota/trace"
 	"github.com/go-redis/redis/v8"
 	"github.com/opentracing/opentracing-go"
 	"github.com/opentracing/opentracing-go/ext"
@@ -11,10 +11,12 @@ import (
 )
 
 const (
-	operationRedis = "Redis-"
-	logCmdName     = "command"
-	logCmdArgs     = "args"
-	logCmdResult   = "result"
+	operationRedis  = "Redis-"
+	logCmdName      = "command"
+	logCmdArgs      = "args"
+	logCmdResult    = "result"
+	traceTagTraceID = "TraceID"
+	traceTagSpanID  = "SpanID"
 )
 
 type contextKey int
@@ -33,27 +35,21 @@ func NewJaegerHook() redis.Hook {
 
 // BeforeProcess redis before execute action do something
 func (jh *jaegerHook) BeforeProcess(ctx context.Context, cmd redis.Cmder) (context.Context, error) {
-	if jaeger.Tracer == nil {
-		return ctx, nil
-	}
-	span, ctx := opentracing.StartSpanFromContextWithTracer(ctx, jaeger.Tracer, operationRedis+cmd.Name())
+	span := trace.ObtainChildSpan(ctx, operationRedis+cmd.Name())
 
-	jaeger.SetCommonTag(ctx, span)
-
-	ctx = opentracing.ContextWithSpan(ctx, span)
+	ctx = context.WithValue(ctx, cmdStart, span)
 	return ctx, nil
 }
 
 // AfterProcess redis after execute action do something
 func (jh *jaegerHook) AfterProcess(ctx context.Context, cmd redis.Cmder) error {
-	if jaeger.Tracer == nil {
-		return nil
-	}
-	span := opentracing.SpanFromContext(ctx)
-	if span == nil {
+	span, ok := ctx.Value(cmdStart).(opentracing.Span)
+	if !ok {
 		return nil
 	}
 	defer span.Finish()
+
+	setCommonTag(ctx, span)
 
 	span.LogFields(tracerLog.String(logCmdName, cmd.Name()))
 	span.LogFields(tracerLog.Object(logCmdArgs, cmd.Args()))
@@ -69,11 +65,7 @@ func (jh *jaegerHook) AfterProcess(ctx context.Context, cmd redis.Cmder) error {
 
 // BeforeProcessPipeline before command process handle
 func (jh *jaegerHook) BeforeProcessPipeline(ctx context.Context, cmds []redis.Cmder) (context.Context, error) {
-	if jaeger.Tracer == nil {
-		return ctx, nil
-	}
-
-	span, ctx := opentracing.StartSpanFromContextWithTracer(ctx, jaeger.Tracer, operationRedis+"pipeline")
+	span := trace.ObtainChildSpan(ctx, operationRedis+"pipeline")
 
 	ctx = context.WithValue(ctx, cmdStart, span)
 
@@ -82,10 +74,6 @@ func (jh *jaegerHook) BeforeProcessPipeline(ctx context.Context, cmds []redis.Cm
 
 // AfterProcessPipeline after command process handle
 func (jh *jaegerHook) AfterProcessPipeline(ctx context.Context, cmds []redis.Cmder) error {
-	if jaeger.Tracer == nil {
-		return nil
-	}
-
 	span, ok := ctx.Value(cmdStart).(opentracing.Span)
 	if !ok {
 		return nil
@@ -118,4 +106,15 @@ func isRedisError(err error) bool {
 	}
 	_, ok := err.(redis.Error)
 	return ok
+}
+
+// setCommonTag 设置公众的traceTag
+func setCommonTag(ctx context.Context, span opentracing.Span) {
+	// 植入traceID 与 spanID
+	if traceID := trace.ObtainTraceID(ctx); traceID != "" {
+		span.SetTag(traceTagTraceID, traceID)
+	}
+	if spanID := trace.ObtainSpanID(ctx); spanID != "" {
+		span.SetTag(traceTagSpanID, spanID)
+	}
 }

@@ -231,6 +231,14 @@ func ObtainTraceID(ctx context.Context) string {
 	return _driver.ObtainTraceID(ctx)
 }
 
+// ObtainSpanID get SpanID from ctx
+func ObtainSpanID(ctx context.Context) string {
+	if _driver == nil {
+		return ""
+	}
+	return _driver.ObtainSpanID(ctx)
+}
+
 // GetTraceStrFromSpan get TraceStr from Span
 func GetTraceStrFromSpan(span opentracing.Span) string {
 	if IsNoopSpan(span) {

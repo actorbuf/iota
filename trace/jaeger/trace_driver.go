@@ -34,6 +34,19 @@ func (d *UberDriver) ObtainTraceID(ctx context.Context) string {
 	return uSpan.TraceID().String()
 }
 
+// ObtainSpanID ctx 中获取 SpanID
+func (d *UberDriver) ObtainSpanID(ctx context.Context) string {
+	spanFace := trace.ObtainCtxSpan(ctx)
+	if trace.IsNoopSpan(spanFace) {
+		return ""
+	}
+	uSpan, ok := spanFace.Context().(jaeger.SpanContext)
+	if !ok {
+		return ""
+	}
+	return uSpan.SpanID().String()
+}
+
 // GetTraceStrFromSpan span中获取 traceStr
 func (d *UberDriver) GetTraceStrFromSpan(span opentracing.Span) string {
 	spCtx, ok := span.Context().(jaeger.SpanContext)
