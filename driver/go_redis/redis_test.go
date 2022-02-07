@@ -25,38 +25,40 @@ func TestOperator(t *testing.T) {
 
 	NewIotaRedisPools()
 
+	// 不带链路追踪的初始化
 	err = IotaRedisPools.Create("redis0", &redis.UniversalOptions{
-		Addrs: []string{"127.0.0.1:6379"},
+		Addrs: []string{"127.0.0.1:6380"},
 		DB: 0,
-	})
+	}, nil)
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
 
+	// 带链路追踪的初始化
 	err = IotaRedisPools.Create("redis1", &redis.UniversalOptions{
-		Addrs: []string{"127.0.0.1:6379"},
+		Addrs: []string{"127.0.0.1:6380"},
 		DB: 1,
-	})
+	}, NewJaegerHook())
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
 
-	redis0, bool := IotaRedisPools.GetConn("redis0")
+	redis1, bool := IotaRedisPools.GetConn("redis1")
 	if !bool {
-		fmt.Println("获取连接失败", redis0)
+		fmt.Println("获取连接失败", redis1)
 		return
 	}
 
 	ctx := context.Background()
 
 	// 写入一个key
-	redis0.Set(ctx, "hello", "world", time.Minute*10)
+	redis1.Set(ctx, "hello", "world", time.Minute*10)
 
 	time.Sleep(time.Second * 5)
 	// 取一下
-	value, err := redis0.Get(ctx, "hello").Result()
+	value, err := redis1.Get(ctx, "hello").Result()
 	if err != nil {
 		panic(err)
 	}

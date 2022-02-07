@@ -27,7 +27,7 @@ var iotaRedisPoolsLock sync.Mutex
 // RedisOperator redis 多实例操作接口
 type RedisOperator interface {
 	// Create 初始化一个连接 失败时将panic
-	Create(key string, opt *redis.UniversalOptions) error
+	Create(key string, opt *redis.UniversalOptions, hook redis.Hook) error
 	// Delete 移除一个连接
 	Delete(key string)
 	// GetConn 获取一个Redis连接
@@ -44,7 +44,7 @@ type RedisOperator interface {
 }
 
 // Create 初始化一个连接 失败时将panic
-func (rp *RedisPool) Create(key string, opt *redis.UniversalOptions) error {
+func (rp *RedisPool) Create(key string, opt *redis.UniversalOptions, hook redis.Hook) error {
 	iotaRedisPoolsLock.Lock()
 
 	if _, ok := rp.Pool[key]; !ok {
@@ -54,7 +54,9 @@ func (rp *RedisPool) Create(key string, opt *redis.UniversalOptions) error {
 			return err
 		}
 		rp.Pool[key] = client
-		rp.Pool[key].AddHook(NewJaegerHook())
+		if hook != nil {
+			rp.Pool[key].AddHook(hook)
+		}
 	} else {
 		return errors.New("redis connect key exist")
 	}
