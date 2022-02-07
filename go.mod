@@ -10,7 +10,7 @@ require (
 	github.com/go-redis/cache/v8 v8.4.3
 	github.com/go-redis/redis/v8 v8.11.4
 	github.com/go-redis/redis_rate/v9 v9.1.2
-	github.com/json-iterator/go v1.1.12 // indirect
+	github.com/json-iterator/go v1.1.12
 	github.com/klauspost/compress v1.14.1 // indirect
 	github.com/mattn/go-isatty v0.0.14 // indirect
 	github.com/opentracing/opentracing-go v1.2.0
@@ -21,6 +21,7 @@ require (
 	github.com/ugorji/go v1.2.6 // indirect
 	github.com/vmihailenco/msgpack/v5 v5.3.5 // indirect
 	github.com/xuri/excelize/v2 v2.5.0
+	go.mongodb.org/mongo-driver v1.8.3
 	go.opentelemetry.io/otel v1.3.0
 	go.opentelemetry.io/otel/bridge/opentracing v1.3.0
 	go.opentelemetry.io/otel/exporters/jaeger v1.3.0
@@ -31,5 +32,5 @@ require (
 	golang.org/x/exp v0.0.0-20220104160115-025e73f80486 // indirect
 	golang.org/x/net v0.0.0-20220111093109-d55c255bac03 // indirect
 	golang.org/x/sys v0.0.0-20220111092808-5a964db01320 // indirect
-	google.golang.org/protobuf v1.27.1 // indirect
+	google.golang.org/protobuf v1.27.1
 )
