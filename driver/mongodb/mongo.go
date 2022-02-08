@@ -97,18 +97,6 @@ func (db *Database) Collection(collection string, opts ...*options.CollectionOpt
 
 func (col *Collection) InsertOne(ctx context.Context, document interface{},
 	opts ...*options.InsertOneOptions) (*mongo.InsertOneResult, error) {
-	span := spanFunc(ctx, col.dbname, col.colname, InsertOne, document)
-	defer span.Finish()
-	defer spanFinishAt(span)
-	res, err := col.Collection.InsertOne(ctx, document, opts...)
-	if err != nil {
-		ext.Error.Set(span, true)
-	}
-	return res, err
-}
-
-func (col *Collection) InsertOne1(ctx context.Context, document interface{},
-	opts ...*options.InsertOneOptions) (*mongo.InsertOneResult, error) {
 	// 构造OpTrace
 	opTrace := &OpTrace{
 		Ctx:             ctx,
@@ -138,18 +126,6 @@ func (col *Collection) InsertOne1(ctx context.Context, document interface{},
 }
 
 func (col *Collection) InsertMany(ctx context.Context, documents []interface{},
-	opts ...*options.InsertManyOptions) (*mongo.InsertManyResult, error) {
-	span := spanFunc(ctx, col.dbname, col.colname, InsertMany, documents)
-	defer span.Finish()
-	defer spanFinishAt(span)
-	res, err := col.Collection.InsertMany(ctx, documents, opts...)
-	if err != nil {
-		ext.Error.Set(span, true)
-	}
-	return res, err
-}
-
-func (col *Collection) InsertMany2(ctx context.Context, documents []interface{},
 	opts ...*options.InsertManyOptions) (*mongo.InsertManyResult, error) {
 	// 构造OpTrace
 	opTrace := &OpTrace{
@@ -181,18 +157,6 @@ func (col *Collection) InsertMany2(ctx context.Context, documents []interface{},
 
 func (col *Collection) DeleteOne(ctx context.Context, filter interface{},
 	opts ...*options.DeleteOptions) (*mongo.DeleteResult, error) {
-	span := spanFunc(ctx, col.dbname, col.colname, DeleteOne, filter)
-	defer span.Finish()
-	defer spanFinishAt(span)
-	res, err := col.Collection.DeleteOne(ctx, filter, opts...)
-	if err != nil {
-		ext.Error.Set(span, true)
-	}
-	return res, err
-}
-
-func (col *Collection) DeleteOne2(ctx context.Context, filter interface{},
-	opts ...*options.DeleteOptions) (*mongo.DeleteResult, error) {
 	// 构造OpTrace
 	opTrace := &OpTrace{
 		Ctx:        ctx,
@@ -222,18 +186,6 @@ func (col *Collection) DeleteOne2(ctx context.Context, filter interface{},
 }
 
 func (col *Collection) DeleteMany(ctx context.Context, filter interface{},
-	opts ...*options.DeleteOptions) (*mongo.DeleteResult, error) {
-	span := spanFunc(ctx, col.dbname, col.colname, DeleteMany, filter)
-	defer span.Finish()
-	defer spanFinishAt(span)
-	res, err := col.Collection.DeleteMany(ctx, filter, opts...)
-	if err != nil {
-		ext.Error.Set(span, true)
-	}
-	return res, err
-}
-
-func (col *Collection) DeleteMany2(ctx context.Context, filter interface{},
 	opts ...*options.DeleteOptions) (*mongo.DeleteResult, error) {
 	// 构造OpTrace
 	opTrace := &OpTrace{
@@ -295,19 +247,6 @@ func (col *Collection) UpdateByID(ctx context.Context, id interface{}, update in
 
 func (col *Collection) UpdateOne(ctx context.Context, filter interface{}, update interface{},
 	opts ...*options.UpdateOptions) (*mongo.UpdateResult, error) {
-	spanInfo := map[string]interface{}{"filter": filter, "update": update}
-	span := spanFunc(ctx, col.dbname, col.colname, UpdateOne, spanInfo)
-	defer span.Finish()
-	defer spanFinishAt(span)
-	res, err := col.Collection.UpdateOne(ctx, filter, update, opts...)
-	if err != nil {
-		ext.Error.Set(span, true)
-	}
-	return res, err
-}
-
-func (col *Collection) UpdateOne2(ctx context.Context, filter interface{}, update interface{},
-	opts ...*options.UpdateOptions) (*mongo.UpdateResult, error) {
 	// 构造OpTrace
 	opTrace := &OpTrace{
 		Ctx:        ctx,
@@ -339,19 +278,6 @@ func (col *Collection) UpdateOne2(ctx context.Context, filter interface{}, updat
 
 func (col *Collection) UpdateMany(ctx context.Context, filter interface{}, update interface{},
 	opts ...*options.UpdateOptions) (*mongo.UpdateResult, error) {
-	spanInfo := map[string]interface{}{"filter": filter, "update": update}
-	span := spanFunc(ctx, col.dbname, col.colname, UpdateMany, spanInfo)
-	defer span.Finish()
-	defer spanFinishAt(span)
-	res, err := col.Collection.UpdateMany(ctx, filter, update, opts...)
-	if err != nil {
-		ext.Error.Set(span, true)
-	}
-	return res, err
-}
-
-func (col *Collection) UpdateMany2(ctx context.Context, filter interface{}, update interface{},
-	opts ...*options.UpdateOptions) (*mongo.UpdateResult, error) {
 	// 构造OpTrace
 	opTrace := &OpTrace{
 		Ctx:        ctx,
@@ -380,19 +306,6 @@ func (col *Collection) UpdateMany2(ctx context.Context, filter interface{}, upda
 }
 
 func (col *Collection) ReplaceOne(ctx context.Context, filter interface{},
-	replacement interface{}, opts ...*options.ReplaceOptions) (*mongo.UpdateResult, error) {
-	spanInfo := map[string]interface{}{"filter": filter, "replacement": replacement}
-	span := spanFunc(ctx, col.dbname, col.colname, ReplaceOne, spanInfo)
-	defer span.Finish()
-	defer spanFinishAt(span)
-	res, err := col.Collection.ReplaceOne(ctx, filter, replacement, opts...)
-	if err != nil {
-		ext.Error.Set(span, true)
-	}
-	return res, err
-}
-
-func (col *Collection) ReplaceOne2(ctx context.Context, filter interface{},
 	replacement interface{}, opts ...*options.ReplaceOptions) (*mongo.UpdateResult, error) {
 	// 构造OpTrace
 	opTrace := &OpTrace{
@@ -423,18 +336,6 @@ func (col *Collection) ReplaceOne2(ctx context.Context, filter interface{},
 
 func (col *Collection) Aggregate(ctx context.Context, pipeline interface{},
 	opts ...*options.AggregateOptions) (*mongo.Cursor, error) {
-	span := spanFunc(ctx, col.dbname, col.colname, Aggregate, pipeline)
-	defer span.Finish()
-	defer spanFinishAt(span)
-	res, err := col.Collection.Aggregate(ctx, pipeline, opts...)
-	if err != nil {
-		ext.Error.Set(span, true)
-	}
-	return res, err
-}
-
-func (col *Collection) Aggregate2(ctx context.Context, pipeline interface{},
-	opts ...*options.AggregateOptions) (*mongo.Cursor, error) {
 	// 构造OpTrace
 	opTrace := &OpTrace{
 		Ctx:        ctx,
@@ -462,18 +363,6 @@ func (col *Collection) Aggregate2(ctx context.Context, pipeline interface{},
 }
 
 func (col *Collection) CountDocuments(ctx context.Context, filter interface{},
-	opts ...*options.CountOptions) (int64, error) {
-	span := spanFunc(ctx, col.dbname, col.colname, CountDocuments, filter)
-	defer span.Finish()
-	defer spanFinishAt(span)
-	res, err := col.Collection.CountDocuments(ctx, filter, opts...)
-	if err != nil {
-		ext.Error.Set(span, true)
-	}
-	return res, err
-}
-
-func (col *Collection) CountDocuments2(ctx context.Context, filter interface{},
 	opts ...*options.CountOptions) (int64, error) {
 	// 构造OpTrace
 	opTrace := &OpTrace{
@@ -503,19 +392,6 @@ func (col *Collection) CountDocuments2(ctx context.Context, filter interface{},
 
 func (col *Collection) Distinct(ctx context.Context, fieldName string, filter interface{},
 	opts ...*options.DistinctOptions) ([]interface{}, error) {
-	spanInfo := map[string]interface{}{"fieldName": fieldName, "filter": filter}
-	span := spanFunc(ctx, col.dbname, col.colname, Distinct, spanInfo)
-	defer span.Finish()
-	defer spanFinishAt(span)
-	res, err := col.Collection.Distinct(ctx, fieldName, filter, opts...)
-	if err != nil {
-		ext.Error.Set(span, true)
-	}
-	return res, err
-}
-
-func (col *Collection) Distinct2(ctx context.Context, fieldName string, filter interface{},
-	opts ...*options.DistinctOptions) ([]interface{}, error) {
 	// 构造OpTrace
 	opTrace := &OpTrace{
 		Ctx:        ctx,
@@ -543,18 +419,6 @@ func (col *Collection) Distinct2(ctx context.Context, fieldName string, filter i
 }
 
 func (col *Collection) Find(ctx context.Context, filter interface{},
-	opts ...*options.FindOptions) (*mongo.Cursor, error) {
-	span := spanFunc(ctx, col.dbname, col.colname, Find, filter)
-	defer span.Finish()
-	defer spanFinishAt(span)
-	res, err := col.Collection.Find(ctx, filter, opts...)
-	if err != nil {
-		ext.Error.Set(span, true)
-	}
-	return res, err
-}
-
-func (col *Collection) Find2(ctx context.Context, filter interface{},
 	opts ...*options.FindOptions) (*mongo.Cursor, error) {
 	// 构造OpTrace
 	opTrace := &OpTrace{
@@ -584,15 +448,6 @@ func (col *Collection) Find2(ctx context.Context, filter interface{},
 
 func (col *Collection) FindOne(ctx context.Context, filter interface{},
 	opts ...*options.FindOneOptions) *mongo.SingleResult {
-	span := spanFunc(ctx, col.dbname, col.colname, FindOne, filter)
-	defer span.Finish()
-	defer spanFinishAt(span)
-	res := col.Collection.FindOne(ctx, filter, opts...)
-	return res
-}
-
-func (col *Collection) FindOne2(ctx context.Context, filter interface{},
-	opts ...*options.FindOneOptions) *mongo.SingleResult {
 	// 构造OpTrace
 	opTrace := &OpTrace{
 		Ctx:        ctx,
@@ -618,15 +473,6 @@ func (col *Collection) FindOne2(ctx context.Context, filter interface{},
 }
 
 func (col *Collection) FindOneAndDelete(ctx context.Context, filter interface{},
-	opts ...*options.FindOneAndDeleteOptions) *mongo.SingleResult {
-	span := spanFunc(ctx, col.dbname, col.colname, FindOneAndDelete, filter)
-	defer span.Finish()
-	defer spanFinishAt(span)
-	res := col.Collection.FindOneAndDelete(ctx, filter, opts...)
-	return res
-}
-
-func (col *Collection) FindOneAndDelete2(ctx context.Context, filter interface{},
 	opts ...*options.FindOneAndDeleteOptions) *mongo.SingleResult {
 	// 构造OpTrace
 	opTrace := &OpTrace{
@@ -654,16 +500,6 @@ func (col *Collection) FindOneAndDelete2(ctx context.Context, filter interface{}
 
 func (col *Collection) FindOneAndReplace(ctx context.Context, filter interface{},
 	replacement interface{}, opts ...*options.FindOneAndReplaceOptions) *mongo.SingleResult {
-	spanInfo := map[string]interface{}{"filter": filter, "replacement": replacement}
-	span := spanFunc(ctx, col.dbname, col.colname, FindOneAndReplace, spanInfo)
-	defer span.Finish()
-	defer spanFinishAt(span)
-	res := col.Collection.FindOneAndReplace(ctx, filter, replacement, opts...)
-	return res
-}
-
-func (col *Collection) FindOneAndReplace2(ctx context.Context, filter interface{},
-	replacement interface{}, opts ...*options.FindOneAndReplaceOptions) *mongo.SingleResult {
 	// 构造OpTrace
 	opTrace := &OpTrace{
 		Ctx:        ctx,
@@ -690,16 +526,6 @@ func (col *Collection) FindOneAndReplace2(ctx context.Context, filter interface{
 }
 
 func (col *Collection) FindOneAndUpdate(ctx context.Context, filter interface{},
-	update interface{}, opts ...*options.FindOneAndUpdateOptions) *mongo.SingleResult {
-	spanInfo := map[string]interface{}{"filter": filter, "update": update}
-	span := spanFunc(ctx, col.dbname, col.colname, FindOneAndUpdate, spanInfo)
-	defer span.Finish()
-	defer spanFinishAt(span)
-	res := col.Collection.FindOneAndUpdate(ctx, filter, update, opts...)
-	return res
-}
-
-func (col *Collection) FindOneAndUpdate2(ctx context.Context, filter interface{},
 	update interface{}, opts ...*options.FindOneAndUpdateOptions) *mongo.SingleResult {
 	// 构造OpTrace
 	opTrace := &OpTrace{
@@ -758,27 +584,6 @@ func (col *Collection) Drop(ctx context.Context) error {
 }
 
 func (col *Collection) BulkWrite(ctx context.Context, models []mongo.WriteModel,
-	opts ...*options.BulkWriteOptions) (*mongo.BulkWriteResult, error) {
-	spanLogs := bson.M{
-		"count": len(models),
-		"data":  SliceStruct2MapOmitEmpty(models),
-	}
-	if len(models) > 5 {
-		spanLogs["data"] = SliceStruct2MapOmitEmpty(models[:5])
-		spanLogs["info"] = "数据过多,只显示前5项"
-	}
-
-	span := spanFunc(ctx, col.dbname, col.colname, BulkWrite, spanLogs)
-	defer span.Finish()
-	defer spanFinishAt(span)
-	res, err := col.Collection.BulkWrite(ctx, models, opts...)
-	if err != nil {
-		ext.Error.Set(span, true)
-	}
-	return res, err
-}
-
-func (col *Collection) BulkWrite2(ctx context.Context, models []mongo.WriteModel,
 	opts ...*options.BulkWriteOptions) (*mongo.BulkWriteResult, error) {
 	// 构造OpTrace
 	opTrace := &OpTrace{

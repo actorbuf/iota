@@ -255,17 +255,17 @@ func TestTrace(t *testing.T) {
 	insertOptions := &options.InsertManyOptions{}
 	insertOptions.SetOrdered(false)
 	insertOptions.SetBypassDocumentValidation(false)
-	res, err := db.Collection("test").InsertMany2(ctx, inserts, insertOptions)
+	res, err := db.Collection("test").InsertMany(ctx, inserts, insertOptions)
 	fmt.Println("res", res, "err", err)
-	res, err = db.Collection("test").InsertMany2(ctx, inserts)
+	res, err = db.Collection("test").InsertMany(ctx, inserts)
 	fmt.Println("res", res, "err", err)
 
 	insertOneOptions := &options.InsertOneOptions{}
 	insertOneOptions.SetBypassDocumentValidation(false)
 
-	res2, err := db.Collection("test").InsertOne1(ctx, inserts[0])
+	res2, err := db.Collection("test").InsertOne(ctx, inserts[0])
 	fmt.Println("res", res2, "err", err)
-	res2, err = db.Collection("test").InsertOne1(ctx, inserts[0], insertOneOptions)
+	res2, err = db.Collection("test").InsertOne(ctx, inserts[0], insertOneOptions)
 	fmt.Println("res", res2, "err", err)
 
 	// update
@@ -276,24 +276,24 @@ func TestTrace(t *testing.T) {
 	res3, err = db.Collection("test").UpdateByID(ctx, "1111", bson.M{"$set": bson.M{"name": "name111"}})
 	fmt.Println("UpdateByID", "res", res3, "err", err)
 
-	res4, err := db.Collection("test").UpdateOne2(ctx, bson.M{"_id": "1111"}, bson.M{"$set": bson.M{"name": "name111"}}, updateOneOptions)
+	res4, err := db.Collection("test").UpdateOne(ctx, bson.M{"_id": "1111"}, bson.M{"$set": bson.M{"name": "name111"}}, updateOneOptions)
 	fmt.Println("UpdateOne2", "res", res4, "err", err)
 
-	res4, err = db.Collection("test").UpdateOne2(ctx, bson.M{"_id": "1111"}, bson.M{"$set": bson.M{"name": "name111"}})
+	res4, err = db.Collection("test").UpdateOne(ctx, bson.M{"_id": "1111"}, bson.M{"$set": bson.M{"name": "name111"}})
 	fmt.Println("UpdateOne2", "res", res4, "err", err)
 
-	res4, err = db.Collection("test").UpdateMany2(ctx, bson.M{"_id": "1111"}, bson.M{"$set": bson.M{"name": "name111"}})
+	res4, err = db.Collection("test").UpdateMany(ctx, bson.M{"_id": "1111"}, bson.M{"$set": bson.M{"name": "name111"}})
 	fmt.Println("UpdateMany2", "res", res4, "err", err)
 
 	// find
 	findOneOptions := &options.FindOneOptions{}
 	findOneOptions.SetSkip(0)
 
-	_ = db.Collection("test").FindOne2(ctx, bson.M{"_id": "1111"}, findOneOptions)
+	_ = db.Collection("test").FindOne(ctx, bson.M{"_id": "1111"}, findOneOptions)
 
 	findOptions := &options.FindOptions{}
 	findOptions.SetSkip(0)
-	_, err = db.Collection("test").Find2(ctx, bson.M{"_id": "1111"}, findOptions)
+	_, err = db.Collection("test").Find(ctx, bson.M{"_id": "1111"}, findOptions)
 	fmt.Println("Find2", "err", err)
 
 	pipeline := mongo.Pipeline{
@@ -305,7 +305,7 @@ func TestTrace(t *testing.T) {
 			Value: 0,
 		}},
 	}
-	_, err = db.Collection("test").Aggregate2(ctx, pipeline)
+	_, err = db.Collection("test").Aggregate(ctx, pipeline)
 	fmt.Println("Aggregate2", "err", err)
 }
 
