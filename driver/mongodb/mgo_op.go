@@ -16,7 +16,7 @@ func newMgoOp(col *Collection, op *OpTrace) *mgoOp {
 }
 
 func (m *mgoOp) insertOneMgoOp(ctx context.Context, document interface{},
-	opts ...*options.InsertOneOptions) func(op *OpTrace) {
+	opts ...*options.InsertOneOptions) HandlerFunc {
 	return func(op *OpTrace) {
 		res, mgoErr := m.col.Collection.InsertOne(ctx, document, opts...)
 		op.Res = res
@@ -25,7 +25,7 @@ func (m *mgoOp) insertOneMgoOp(ctx context.Context, document interface{},
 }
 
 func (m *mgoOp) insertManyMgoOp(ctx context.Context, documents []interface{},
-	opts ...*options.InsertManyOptions) func(op *OpTrace) {
+	opts ...*options.InsertManyOptions) HandlerFunc {
 	return func(op *OpTrace) {
 		res, mgoErr := m.col.Collection.InsertMany(ctx, documents, opts...)
 		op.Res = res
@@ -34,7 +34,7 @@ func (m *mgoOp) insertManyMgoOp(ctx context.Context, documents []interface{},
 }
 
 func (m *mgoOp) deleteOneMgoOp(ctx context.Context, filter interface{},
-	opts ...*options.DeleteOptions) func(op *OpTrace) {
+	opts ...*options.DeleteOptions) HandlerFunc {
 	return func(op *OpTrace) {
 		res, mgoErr := m.col.Collection.DeleteOne(ctx, filter, opts...)
 		op.Res = res
@@ -43,7 +43,7 @@ func (m *mgoOp) deleteOneMgoOp(ctx context.Context, filter interface{},
 }
 
 func (m *mgoOp) deleteManyMgoOp(ctx context.Context, filter interface{},
-	opts ...*options.DeleteOptions) func(op *OpTrace) {
+	opts ...*options.DeleteOptions) HandlerFunc {
 	return func(op *OpTrace) {
 		res, mgoErr := m.col.Collection.DeleteMany(ctx, filter, opts...)
 		op.Res = res
@@ -52,7 +52,7 @@ func (m *mgoOp) deleteManyMgoOp(ctx context.Context, filter interface{},
 }
 
 func (m *mgoOp) updateByIDMgoOp(ctx context.Context, id interface{}, update interface{},
-	opts ...*options.UpdateOptions) func(op *OpTrace) {
+	opts ...*options.UpdateOptions) HandlerFunc {
 	return func(op *OpTrace) {
 		res, mgoErr := m.col.Collection.UpdateByID(ctx, id, update, opts...)
 		op.Res = res
@@ -61,7 +61,7 @@ func (m *mgoOp) updateByIDMgoOp(ctx context.Context, id interface{}, update inte
 }
 
 func (m *mgoOp) updateByOneMgoOp(ctx context.Context, filter interface{}, update interface{},
-	opts ...*options.UpdateOptions) func(op *OpTrace) {
+	opts ...*options.UpdateOptions) HandlerFunc {
 	return func(op *OpTrace) {
 		res, mgoErr := m.col.Collection.UpdateOne(ctx, filter, update, opts...)
 		op.Res = res
@@ -70,7 +70,7 @@ func (m *mgoOp) updateByOneMgoOp(ctx context.Context, filter interface{}, update
 }
 
 func (m *mgoOp) updateByManyMgoOp(ctx context.Context, filter interface{}, update interface{},
-	opts ...*options.UpdateOptions) func(op *OpTrace) {
+	opts ...*options.UpdateOptions) HandlerFunc {
 	return func(op *OpTrace) {
 		res, mgoErr := m.col.Collection.UpdateMany(ctx, filter, update, opts...)
 		op.Res = res
@@ -79,7 +79,7 @@ func (m *mgoOp) updateByManyMgoOp(ctx context.Context, filter interface{}, updat
 }
 
 func (m *mgoOp) replaceOneMgoOp(ctx context.Context, filter interface{},
-	replacement interface{}, opts ...*options.ReplaceOptions) func(op *OpTrace) {
+	replacement interface{}, opts ...*options.ReplaceOptions) HandlerFunc {
 	return func(op *OpTrace) {
 		res, mgoErr := m.col.Collection.ReplaceOne(ctx, filter, replacement, opts...)
 		op.Res = res
@@ -88,7 +88,7 @@ func (m *mgoOp) replaceOneMgoOp(ctx context.Context, filter interface{},
 }
 
 func (m *mgoOp) aggregateMgoOp(ctx context.Context, pipeline interface{},
-	opts ...*options.AggregateOptions) func(op *OpTrace) {
+	opts ...*options.AggregateOptions) HandlerFunc {
 	return func(op *OpTrace) {
 		res, mgoErr := m.col.Collection.Aggregate(ctx, pipeline, opts...)
 		op.Res = res
@@ -97,7 +97,7 @@ func (m *mgoOp) aggregateMgoOp(ctx context.Context, pipeline interface{},
 }
 
 func (m *mgoOp) countDocumentsMgoOp(ctx context.Context, filter interface{},
-	opts ...*options.CountOptions) func(op *OpTrace) {
+	opts ...*options.CountOptions) HandlerFunc {
 	return func(op *OpTrace) {
 		res, mgoErr := m.col.Collection.CountDocuments(ctx, filter, opts...)
 		op.Res = res
@@ -106,7 +106,7 @@ func (m *mgoOp) countDocumentsMgoOp(ctx context.Context, filter interface{},
 }
 
 func (m *mgoOp) distinctMgoOp(ctx context.Context, fieldName string, filter interface{},
-	opts ...*options.DistinctOptions) func(op *OpTrace) {
+	opts ...*options.DistinctOptions) HandlerFunc {
 	return func(op *OpTrace) {
 		res, mgoErr := m.col.Collection.Distinct(ctx, fieldName, filter, opts...)
 		op.Res = res
@@ -115,7 +115,7 @@ func (m *mgoOp) distinctMgoOp(ctx context.Context, fieldName string, filter inte
 }
 
 func (m *mgoOp) findMgoOp(ctx context.Context, filter interface{},
-	opts ...*options.FindOptions) func(op *OpTrace) {
+	opts ...*options.FindOptions) HandlerFunc {
 	return func(op *OpTrace) {
 		res, mgoErr := m.col.Collection.Find(ctx, filter, opts...)
 		op.Res = res
@@ -124,7 +124,7 @@ func (m *mgoOp) findMgoOp(ctx context.Context, filter interface{},
 }
 
 func (m *mgoOp) findOneMgoOp(ctx context.Context, filter interface{},
-	opts ...*options.FindOneOptions) func(op *OpTrace) {
+	opts ...*options.FindOneOptions) HandlerFunc {
 	return func(op *OpTrace) {
 		res := m.col.Collection.FindOne(ctx, filter, opts...)
 		op.Res = res
@@ -132,7 +132,7 @@ func (m *mgoOp) findOneMgoOp(ctx context.Context, filter interface{},
 }
 
 func (m *mgoOp) findOneAndDeleteMgoOp(ctx context.Context, filter interface{},
-	opts ...*options.FindOneAndDeleteOptions) func(op *OpTrace) {
+	opts ...*options.FindOneAndDeleteOptions) HandlerFunc {
 	return func(op *OpTrace) {
 		res := m.col.Collection.FindOneAndDelete(ctx, filter, opts...)
 		op.Res = res
@@ -140,7 +140,7 @@ func (m *mgoOp) findOneAndDeleteMgoOp(ctx context.Context, filter interface{},
 }
 
 func (m *mgoOp) findOneAndReplaceMgoOp(ctx context.Context, filter interface{},
-	replacement interface{}, opts ...*options.FindOneAndReplaceOptions) func(op *OpTrace) {
+	replacement interface{}, opts ...*options.FindOneAndReplaceOptions) HandlerFunc {
 	return func(op *OpTrace) {
 		res := m.col.Collection.FindOneAndReplace(ctx, filter, replacement, opts...)
 		op.Res = res
@@ -148,7 +148,7 @@ func (m *mgoOp) findOneAndReplaceMgoOp(ctx context.Context, filter interface{},
 }
 
 func (m *mgoOp) findOneAndUpdateMgoOp(ctx context.Context, filter interface{},
-	update interface{}, opts ...*options.FindOneAndUpdateOptions) func(op *OpTrace) {
+	update interface{}, opts ...*options.FindOneAndUpdateOptions) HandlerFunc {
 	return func(op *OpTrace) {
 		res := m.col.Collection.FindOneAndUpdate(ctx, filter, update, opts...)
 		op.Res = res
@@ -156,7 +156,7 @@ func (m *mgoOp) findOneAndUpdateMgoOp(ctx context.Context, filter interface{},
 }
 
 func (m *mgoOp) watchMgoOp(ctx context.Context, pipeline interface{},
-	opts ...*options.ChangeStreamOptions) func(op *OpTrace) {
+	opts ...*options.ChangeStreamOptions) HandlerFunc {
 	return func(op *OpTrace) {
 		res, err := m.col.Collection.Watch(ctx, pipeline, opts...)
 		op.Res = res
@@ -164,14 +164,14 @@ func (m *mgoOp) watchMgoOp(ctx context.Context, pipeline interface{},
 	}
 }
 
-func (m *mgoOp) indexesMgoOp(_ context.Context) func(op *OpTrace) {
+func (m *mgoOp) indexesMgoOp(_ context.Context) HandlerFunc {
 	return func(op *OpTrace) {
 		res := m.col.Collection.Indexes()
 		op.Res = res
 	}
 }
 
-func (m *mgoOp) dropMgoOp(ctx context.Context) func(op *OpTrace) {
+func (m *mgoOp) dropMgoOp(ctx context.Context) HandlerFunc {
 	return func(op *OpTrace) {
 		res := m.col.Collection.Drop(ctx)
 		op.Res = res
@@ -179,7 +179,7 @@ func (m *mgoOp) dropMgoOp(ctx context.Context) func(op *OpTrace) {
 }
 
 func (m *mgoOp) bulkWriteMgoOp(ctx context.Context, models []mongo.WriteModel,
-	opts ...*options.BulkWriteOptions) func(op *OpTrace) {
+	opts ...*options.BulkWriteOptions) HandlerFunc {
 	return func(op *OpTrace) {
 		res, err := m.col.Collection.BulkWrite(ctx, models, opts...)
 		op.Res = res

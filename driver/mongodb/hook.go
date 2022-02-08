@@ -9,7 +9,7 @@ func AddMiddleware2(handler ...HandlerFunc) {
 	handlers = append(handlers, handler...)
 }
 
-func do(f func(op *OpTrace), op *OpTrace) {
+func do(f HandlerFunc, op *OpTrace) {
 	op.handlers = append(handlers, f)
 	if len(op.handlers) == 0 {
 		return
