@@ -1,36 +1,19 @@
 package mongodb
 
-type Callback interface {
-	Before(op *OpTrace) error // 执行前钩子
-	After(op *OpTrace) error  // 执行后钩子
+var handlers []HandlerFunc
+
+// HandlerFunc 执行中间件
+type HandlerFunc func(op *OpTrace)
+
+func AddMiddleware2(handler ...HandlerFunc) {
+	handlers = append(handlers, handler...)
 }
 
-var middlewareCallback []Callback
-
-func AddMiddleware(middleware Callback) {
-	middlewareCallback = append(middlewareCallback, middleware)
-}
-
-// middlewareBefore 前置中间件
-func middlewareBefore(opTrace *OpTrace) error {
-	for _, hook := range middlewareCallback {
-		err := hook.Before(opTrace)
-		if err != nil {
-			return err
-		}
+func do(f func(op *OpTrace), op *OpTrace) {
+	op.handlers = append(handlers, f)
+	if len(op.handlers) == 0 {
+		return
 	}
-	return nil
-}
-
-// middlewareAfter 后置中间件
-func middlewareAfter(opTrace *OpTrace) error {
-	// 逆序执行after
-	for i := len(middlewareCallback) - 1; i >= 0; i-- {
-		hook := middlewareCallback[i]
-		err := hook.After(opTrace)
-		if err != nil {
-			return err
-		}
-	}
-	return nil
+	// 执行对应的操作链
+	op.handlers[0](op)
 }

@@ -230,7 +230,7 @@ func TestTrace(t *testing.T) {
 	}()
 
 	// 加入jaeger
-	AddMiddleware(NewJaegerHook())
+	AddMiddleware2(NewJaegerHook())
 
 	var ctx = context.Background()
 
@@ -318,9 +318,8 @@ func TestExecStr(t *testing.T) {
 
 func exec(opts ...*options.InsertManyOptions) {
 	opTrace := &OpTrace{
-		Op:     OpInsertMany,
-		OpStep: OpStepBefore,
-		Opts:   opts,
+		Op:   OpInsertMany,
+		Opts: opts,
 	}
 	fmt.Println(fmtStr(opTrace))
 }
@@ -328,4 +327,85 @@ func exec(opts ...*options.InsertManyOptions) {
 func fmtStr(op *OpTrace) string {
 	fmt.Println(op.Opts)
 	return execStr(op.Opts)
+}
+
+func TestMiddleware(t *testing.T) {
+	f1 := func(op *OpTrace) {
+		fmt.Println("f1 before")
+		op.Next()
+		fmt.Println("f1 after")
+	}
+	f2 := func(op *OpTrace) {
+		fmt.Println("f2 before")
+		op.Next()
+		fmt.Println("f2 after")
+	}
+	f3 := func(op *OpTrace) {
+		op.Next()
+		fmt.Println("f3 after")
+	}
+	f4 := func(op *OpTrace) {
+		fmt.Println("f4 before")
+		op.Next()
+	}
+
+	AddMiddleware2(f1, f2, f3, f4)
+	op := new(OpTrace)
+	f := func(op *OpTrace) { fmt.Println("f do") }
+
+	do(f, op)
+}
+
+func TestAddMiddleware2(t *testing.T) {
+	config := &Config{
+		URI:         "mongodb://root:root@127.0.0.1:20000/admin",
+		DBName:      "test",
+		MinPoolSize: 4,
+		MaxPoolSize: 10,
+		ConnTimeout: 10,
+	}
+	client, err := ConnInit(config)
+	if err != nil {
+		panic(err)
+	}
+	db := client.Database(config.DBName)
+
+	f1 := func(op *OpTrace) {
+		fmt.Println("f1 before")
+		op.Next()
+		fmt.Println("f1 after")
+	}
+	f2 := func(op *OpTrace) {
+		fmt.Println("f2 before")
+		op.Next()
+		fmt.Println("f2 after")
+	}
+	f3 := func(op *OpTrace) {
+		op.Next()
+		fmt.Println("f3 after")
+	}
+	f4 := func(op *OpTrace) {
+		fmt.Println("f4 before")
+		op.Next()
+	}
+
+	AddMiddleware2(f1, f2, f3, f4)
+
+	ctx := context.Background()
+
+	var users = []*struct {
+		ID   string `bson:"_id"`
+		Name string `bson:"name"`
+	}{
+		{ID: "3333", Name: "name3"},
+		{ID: "4444", Name: "name4"},
+	}
+
+	var inserts []interface{}
+	for _, user := range users {
+		inserts = append(inserts, user)
+	}
+
+	res2, err := db.Collection("test").InsertOne(ctx, inserts[0])
+	fmt.Println("res", res2, "err", err)
 }

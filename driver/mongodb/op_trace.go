@@ -3,6 +3,7 @@ package mongodb
 import (
 	"context"
 	"go.mongodb.org/mongo-driver/mongo"
+	"sync/atomic"
 )
 
 // OpType 操作类型
@@ -31,21 +32,12 @@ const (
 	OpBulkWrite         OpType = "BulkWrite"
 )
 
-// OpStep 操作步骤
-type OpStep string
-
-const (
-	OpStepBefore = "before"
-	OpStepAfter  = "after"
-)
-
 // OpTrace 记录操作的执行过程
 type OpTrace struct {
 	Ctx        context.Context
 	Collection string
 	Dbname     string
 	Op         OpType // 操作类型
-	OpStep     OpStep // 操作步骤
 	// Opts 所有操作对应的 Opts
 	Opts interface{}
 	// Insert 对应的 Documents， insert 的话只使用头一个
@@ -63,5 +55,15 @@ type OpTrace struct {
 	// Res 执行结果
 	Res interface{}
 	// ResErr 执行错误
-	ResErr error
+	ResErr      error
+	handlers    []HandlerFunc
+	handleIndex int32
+}
+
+func (op *OpTrace) Next() {
+	atomic.AddInt32(&op.handleIndex, 1)
+	for op.handleIndex < int32(len(op.handlers)) {
+		op.handlers[op.handleIndex](op)
+		op.handleIndex++
+	}
 }

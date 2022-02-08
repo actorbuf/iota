@@ -14,10 +14,14 @@ const ExecStrLenMax = 3000
 
 type jaegerHook struct{}
 
-var _ Callback = (*jaegerHook)(nil)
+var _jaegerHook = new(jaegerHook)
 
-func NewJaegerHook() Callback {
-	return &jaegerHook{}
+func NewJaegerHook() HandlerFunc {
+	return func(op *OpTrace) {
+		_ = _jaegerHook.Before(op)
+		op.Next()
+		_ = _jaegerHook.After(op)
+	}
 }
 
 func (j *jaegerHook) Before(op *OpTrace) error {

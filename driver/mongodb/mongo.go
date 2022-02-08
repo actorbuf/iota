@@ -3,15 +3,10 @@ package mongodb
 import (
 	"context"
 	"fmt"
-	"github.com/actorbuf/iota/trace"
-	jsoniter "github.com/json-iterator/go"
-	"github.com/opentracing/opentracing-go"
-	"github.com/opentracing/opentracing-go/log"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
-	"reflect"
 	"time"
 )
 
@@ -100,28 +95,21 @@ func (col *Collection) InsertOne(ctx context.Context, document interface{},
 	opTrace := &OpTrace{
 		Ctx:             ctx,
 		Op:              OpInsertOne,
-		OpStep:          OpStepBefore,
 		Collection:      col.colname,
 		Dbname:          col.dbname,
 		Opts:            opts,
 		InsertDocuments: []interface{}{document},
 	}
-	// 执行 before
-	err := middlewareBefore(opTrace)
-	if err != nil {
-		return nil, err
-	}
 
-	// 执行Mongo
-	res, mgoErr := col.Collection.InsertOne(ctx, document, opts...)
+	// 构造mongo执行方法
+	f := newMgoOp(col, opTrace).insertOneMgoOp(ctx, document, opts...)
 
-	// 执行后置操作
-	opTrace.Res = res
-	opTrace.ResErr = mgoErr
-	opTrace.OpStep = OpStepAfter
-	_ = middlewareAfter(opTrace)
-	// TODO 记录后置操作错误
-	return res, mgoErr
+	// 执行操作
+	do(f, opTrace)
+
+	// 设置返回结果
+	res, _ := opTrace.Res.(*mongo.InsertOneResult)
+	return res, opTrace.ResErr
 }
 
 func (col *Collection) InsertMany(ctx context.Context, documents []interface{},
@@ -130,28 +118,21 @@ func (col *Collection) InsertMany(ctx context.Context, documents []interface{},
 	opTrace := &OpTrace{
 		Ctx:             ctx,
 		Op:              OpInsertMany,
-		OpStep:          OpStepBefore,
 		Collection:      col.colname,
 		Dbname:          col.dbname,
 		Opts:            opts,
 		InsertDocuments: documents,
 	}
-	// 执行 before
-	err := middlewareBefore(opTrace)
-	if err != nil {
-		return nil, err
-	}
 
-	// 执行Mongo
-	res, mgoErr := col.Collection.InsertMany(ctx, documents, opts...)
+	// 构造mongo执行方法
+	f := newMgoOp(col, opTrace).insertManyMgoOp(ctx, documents, opts...)
 
-	// 执行后置操作
-	opTrace.Res = res
-	opTrace.ResErr = mgoErr
-	opTrace.OpStep = OpStepAfter
-	_ = middlewareAfter(opTrace)
-	// TODO 记录后置操作错误
-	return res, mgoErr
+	// 执行操作
+	do(f, opTrace)
+
+	// 设置返回结果
+	res, _ := opTrace.Res.(*mongo.InsertManyResult)
+	return res, opTrace.ResErr
 }
 
 func (col *Collection) DeleteOne(ctx context.Context, filter interface{},
@@ -160,28 +141,21 @@ func (col *Collection) DeleteOne(ctx context.Context, filter interface{},
 	opTrace := &OpTrace{
 		Ctx:        ctx,
 		Op:         OpDeleteOne,
-		OpStep:     OpStepBefore,
 		Collection: col.colname,
 		Dbname:     col.dbname,
 		Opts:       opts,
 		Filter:     filter,
 	}
-	// 执行 before
-	err := middlewareBefore(opTrace)
-	if err != nil {
-		return nil, err
-	}
 
-	// 执行Mongo
-	res, mgoErr := col.Collection.DeleteOne(ctx, filter, opts...)
-	// 执行后置操作
-	opTrace.Res = res
-	opTrace.ResErr = mgoErr
-	opTrace.OpStep = OpStepAfter
-	_ = middlewareAfter(opTrace)
-	// TODO 记录后置操作错误
+	// 构造mongo执行方法
+	f := newMgoOp(col, opTrace).deleteOneMgoOp(ctx, filter, opts...)
 
-	return res, mgoErr
+	// 执行操作
+	do(f, opTrace)
+
+	// 设置返回结果
+	res, _ := opTrace.Res.(*mongo.DeleteResult)
+	return res, opTrace.ResErr
 }
 
 func (col *Collection) DeleteMany(ctx context.Context, filter interface{},
@@ -190,28 +164,21 @@ func (col *Collection) DeleteMany(ctx context.Context, filter interface{},
 	opTrace := &OpTrace{
 		Ctx:        ctx,
 		Op:         OpDeleteMany,
-		OpStep:     OpStepBefore,
 		Collection: col.colname,
 		Dbname:     col.dbname,
 		Opts:       opts,
 		Filter:     filter,
 	}
-	// 执行 before
-	err := middlewareBefore(opTrace)
-	if err != nil {
-		return nil, err
-	}
 
-	// 执行Mongo
-	res, mgoErr := col.Collection.DeleteMany(ctx, filter, opts...)
-	// 执行后置操作
-	opTrace.Res = res
-	opTrace.ResErr = mgoErr
-	opTrace.OpStep = OpStepAfter
-	_ = middlewareAfter(opTrace)
-	// TODO 记录后置操作错误
+	// 构造mongo执行方法
+	f := newMgoOp(col, opTrace).deleteManyMgoOp(ctx, filter, opts...)
 
-	return res, mgoErr
+	// 执行操作
+	do(f, opTrace)
+
+	// 设置返回结果
+	res, _ := opTrace.Res.(*mongo.DeleteResult)
+	return res, opTrace.ResErr
 }
 
 func (col *Collection) UpdateByID(ctx context.Context, id interface{}, update interface{},
@@ -220,28 +187,22 @@ func (col *Collection) UpdateByID(ctx context.Context, id interface{}, update in
 	opTrace := &OpTrace{
 		Ctx:        ctx,
 		Op:         OpUpdateByID,
-		OpStep:     OpStepBefore,
 		Collection: col.colname,
 		Dbname:     col.dbname,
 		Opts:       opts,
 		Filter:     bson.D{{"_id", id}},
 		Update:     update,
 	}
-	// 执行 before
-	err := middlewareBefore(opTrace)
-	if err != nil {
-		return nil, err
-	}
 
-	// 执行Mongo
-	res, mgoErr := col.Collection.UpdateByID(ctx, id, update, opts...)
-	// 执行后置操作
-	opTrace.Res = res
-	opTrace.ResErr = mgoErr
-	opTrace.OpStep = OpStepAfter
-	_ = middlewareAfter(opTrace)
-	// TODO 记录后置操作错误
-	return res, mgoErr
+	// 构造mongo执行方法
+	f := newMgoOp(col, opTrace).updateByIDMgoOp(ctx, id, update, opts...)
+
+	// 执行操作
+	do(f, opTrace)
+
+	// 设置返回结果
+	res, _ := opTrace.Res.(*mongo.UpdateResult)
+	return res, opTrace.ResErr
 }
 
 func (col *Collection) UpdateOne(ctx context.Context, filter interface{}, update interface{},
@@ -250,29 +211,22 @@ func (col *Collection) UpdateOne(ctx context.Context, filter interface{}, update
 	opTrace := &OpTrace{
 		Ctx:        ctx,
 		Op:         OpUpdateOne,
-		OpStep:     OpStepBefore,
 		Collection: col.colname,
 		Dbname:     col.dbname,
 		Opts:       opts,
 		Filter:     filter,
 		Update:     update,
 	}
-	// 执行 before
-	err := middlewareBefore(opTrace)
-	if err != nil {
-		return nil, err
-	}
 
-	// 执行Mongo
-	res, mgoErr := col.Collection.UpdateOne(ctx, filter, update, opts...)
-	// 执行后置操作
-	opTrace.Res = res
-	opTrace.ResErr = mgoErr
-	opTrace.OpStep = OpStepAfter
-	_ = middlewareAfter(opTrace)
-	// TODO 记录后置操作错误
+	// 构造mongo执行方法
+	f := newMgoOp(col, opTrace).updateByOneMgoOp(ctx, filter, update, opts...)
 
-	return res, mgoErr
+	// 执行操作
+	do(f, opTrace)
+
+	// 设置返回结果
+	res, _ := opTrace.Res.(*mongo.UpdateResult)
+	return res, opTrace.ResErr
 }
 
 func (col *Collection) UpdateMany(ctx context.Context, filter interface{}, update interface{},
@@ -281,27 +235,22 @@ func (col *Collection) UpdateMany(ctx context.Context, filter interface{}, updat
 	opTrace := &OpTrace{
 		Ctx:        ctx,
 		Op:         OpUpdateMany,
-		OpStep:     OpStepBefore,
 		Collection: col.colname,
 		Dbname:     col.dbname,
 		Opts:       opts,
 		Filter:     filter,
 		Update:     update,
 	}
-	// 执行 before
-	err := middlewareBefore(opTrace)
-	if err != nil {
-		return nil, err
-	}
-	// 执行Mongo
-	res, mgoErr := col.Collection.UpdateMany(ctx, filter, update, opts...)
-	// 执行后置操作
-	opTrace.Res = res
-	opTrace.ResErr = mgoErr
-	opTrace.OpStep = OpStepAfter
-	_ = middlewareAfter(opTrace)
-	// TODO 记录后置操作错误
-	return res, mgoErr
+
+	// 构造mongo执行方法
+	f := newMgoOp(col, opTrace).updateByManyMgoOp(ctx, filter, update, opts...)
+
+	// 执行操作
+	do(f, opTrace)
+
+	// 设置返回结果
+	res, _ := opTrace.Res.(*mongo.UpdateResult)
+	return res, opTrace.ResErr
 }
 
 func (col *Collection) ReplaceOne(ctx context.Context, filter interface{},
@@ -310,27 +259,22 @@ func (col *Collection) ReplaceOne(ctx context.Context, filter interface{},
 	opTrace := &OpTrace{
 		Ctx:        ctx,
 		Op:         OpReplaceOne,
-		OpStep:     OpStepBefore,
 		Collection: col.colname,
 		Dbname:     col.dbname,
 		Opts:       opts,
 		Filter:     filter,
 		Update:     replacement,
 	}
-	// 执行 before
-	err := middlewareBefore(opTrace)
-	if err != nil {
-		return nil, err
-	}
-	// 执行Mongo
-	res, mgoErr := col.Collection.ReplaceOne(ctx, filter, replacement, opts...)
-	// 执行后置操作
-	opTrace.Res = res
-	opTrace.ResErr = mgoErr
-	opTrace.OpStep = OpStepAfter
-	_ = middlewareAfter(opTrace)
-	// TODO 记录后置操作错误
-	return res, mgoErr
+
+	// 构造mongo执行方法
+	f := newMgoOp(col, opTrace).replaceOneMgoOp(ctx, filter, replacement, opts...)
+
+	// 执行操作
+	do(f, opTrace)
+
+	// 设置返回结果
+	res, _ := opTrace.Res.(*mongo.UpdateResult)
+	return res, opTrace.ResErr
 }
 
 func (col *Collection) Aggregate(ctx context.Context, pipeline interface{},
@@ -339,26 +283,21 @@ func (col *Collection) Aggregate(ctx context.Context, pipeline interface{},
 	opTrace := &OpTrace{
 		Ctx:        ctx,
 		Op:         OpAggregate,
-		OpStep:     OpStepBefore,
 		Collection: col.colname,
 		Dbname:     col.dbname,
 		Opts:       opts,
 		Pipeline:   pipeline,
 	}
-	// 执行 before
-	err := middlewareBefore(opTrace)
-	if err != nil {
-		return nil, err
-	}
-	// 执行Mongo
-	res, mgoErr := col.Collection.Aggregate(ctx, pipeline, opts...)
-	// 执行后置操作
-	opTrace.Res = res
-	opTrace.ResErr = mgoErr
-	opTrace.OpStep = OpStepAfter
-	_ = middlewareAfter(opTrace)
-	// TODO 记录后置操作错误
-	return res, mgoErr
+
+	// 构造mongo执行方法
+	f := newMgoOp(col, opTrace).aggregateMgoOp(ctx, pipeline, opts...)
+
+	// 执行操作
+	do(f, opTrace)
+
+	// 设置返回结果
+	res, _ := opTrace.Res.(*mongo.Cursor)
+	return res, opTrace.ResErr
 }
 
 func (col *Collection) CountDocuments(ctx context.Context, filter interface{},
@@ -367,26 +306,21 @@ func (col *Collection) CountDocuments(ctx context.Context, filter interface{},
 	opTrace := &OpTrace{
 		Ctx:        ctx,
 		Op:         OpCountDocuments,
-		OpStep:     OpStepBefore,
 		Collection: col.colname,
 		Dbname:     col.dbname,
 		Opts:       opts,
 		Filter:     filter,
 	}
-	// 执行 before
-	err := middlewareBefore(opTrace)
-	if err != nil {
-		return 0, err
-	}
-	// 执行Mongo
-	res, mgoErr := col.Collection.CountDocuments(ctx, filter, opts...)
-	// 执行后置操作
-	opTrace.Res = res
-	opTrace.ResErr = mgoErr
-	opTrace.OpStep = OpStepAfter
-	_ = middlewareAfter(opTrace)
-	// TODO 记录后置操作错误
-	return res, mgoErr
+
+	// 构造mongo执行方法
+	f := newMgoOp(col, opTrace).countDocumentsMgoOp(ctx, filter, opts...)
+
+	// 执行操作
+	do(f, opTrace)
+
+	// 设置返回结果
+	res, _ := opTrace.Res.(int64)
+	return res, opTrace.ResErr
 }
 
 func (col *Collection) Distinct(ctx context.Context, fieldName string, filter interface{},
@@ -395,26 +329,21 @@ func (col *Collection) Distinct(ctx context.Context, fieldName string, filter in
 	opTrace := &OpTrace{
 		Ctx:        ctx,
 		Op:         OpDistinct,
-		OpStep:     OpStepBefore,
 		Collection: col.colname,
 		Dbname:     col.dbname,
 		Opts:       opts,
 		Filter:     filter,
 	}
-	// 执行 before
-	err := middlewareBefore(opTrace)
-	if err != nil {
-		return nil, err
-	}
-	// 执行Mongo
-	res, mgoErr := col.Collection.Distinct(ctx, fieldName, filter, opts...)
-	// 执行后置操作
-	opTrace.Res = res
-	opTrace.ResErr = mgoErr
-	opTrace.OpStep = OpStepAfter
-	_ = middlewareAfter(opTrace)
-	// TODO 记录后置操作错误
-	return res, mgoErr
+
+	// 构造mongo执行方法
+	f := newMgoOp(col, opTrace).distinctMgoOp(ctx, fieldName, filter, opts...)
+
+	// 执行操作
+	do(f, opTrace)
+
+	// 设置返回结果
+	res, _ := opTrace.Res.([]interface{})
+	return res, opTrace.ResErr
 }
 
 func (col *Collection) Find(ctx context.Context, filter interface{},
@@ -423,26 +352,21 @@ func (col *Collection) Find(ctx context.Context, filter interface{},
 	opTrace := &OpTrace{
 		Ctx:        ctx,
 		Op:         OpFind,
-		OpStep:     OpStepBefore,
 		Collection: col.colname,
 		Dbname:     col.dbname,
 		Opts:       opts,
 		Filter:     filter,
 	}
-	// 执行 before
-	err := middlewareBefore(opTrace)
-	if err != nil {
-		return nil, err
-	}
-	// 执行Mongo
-	res, mgoErr := col.Collection.Find(ctx, filter, opts...)
-	// 执行后置操作
-	opTrace.Res = res
-	opTrace.ResErr = mgoErr
-	opTrace.OpStep = OpStepAfter
-	_ = middlewareAfter(opTrace)
-	// TODO 记录后置操作错误
-	return res, mgoErr
+
+	// 构造mongo执行方法
+	f := newMgoOp(col, opTrace).findMgoOp(ctx, filter, opts...)
+
+	// 执行操作
+	do(f, opTrace)
+
+	// 设置返回结果
+	res, _ := opTrace.Res.(*mongo.Cursor)
+	return res, opTrace.ResErr
 }
 
 func (col *Collection) FindOne(ctx context.Context, filter interface{},
@@ -451,23 +375,19 @@ func (col *Collection) FindOne(ctx context.Context, filter interface{},
 	opTrace := &OpTrace{
 		Ctx:        ctx,
 		Op:         OpFindOne,
-		OpStep:     OpStepBefore,
 		Collection: col.colname,
 		Dbname:     col.dbname,
 		Opts:       opts,
 		Filter:     filter,
 	}
-	// 执行 before
-	err := middlewareBefore(opTrace)
-	if err != nil {
-		return &mongo.SingleResult{}
-	}
-	// 执行Mongo
-	res := col.Collection.FindOne(ctx, filter, opts...)
-	// 执行后置操作
-	opTrace.Res = res
-	opTrace.OpStep = OpStepAfter
-	_ = middlewareAfter(opTrace)
+	// 构造mongo执行方法
+	f := newMgoOp(col, opTrace).findOneMgoOp(ctx, filter, opts...)
+
+	// 执行操作
+	do(f, opTrace)
+
+	// 设置返回结果
+	res, _ := opTrace.Res.(*mongo.SingleResult)
 	return res
 }
 
@@ -477,23 +397,20 @@ func (col *Collection) FindOneAndDelete(ctx context.Context, filter interface{},
 	opTrace := &OpTrace{
 		Ctx:        ctx,
 		Op:         OpFindOneAndDelete,
-		OpStep:     OpStepBefore,
 		Collection: col.colname,
 		Dbname:     col.dbname,
 		Opts:       opts,
 		Filter:     filter,
 	}
-	// 执行 before
-	err := middlewareBefore(opTrace)
-	if err != nil {
-		return &mongo.SingleResult{}
-	}
-	// 执行Mongo
-	res := col.Collection.FindOneAndDelete(ctx, filter, opts...)
-	// 执行后置操作
-	opTrace.Res = res
-	opTrace.OpStep = OpStepAfter
-	_ = middlewareAfter(opTrace)
+
+	// 构造mongo执行方法
+	f := newMgoOp(col, opTrace).findOneAndDeleteMgoOp(ctx, filter, opts...)
+
+	// 执行操作
+	do(f, opTrace)
+
+	// 设置返回结果
+	res, _ := opTrace.Res.(*mongo.SingleResult)
 	return res
 }
 
@@ -503,24 +420,21 @@ func (col *Collection) FindOneAndReplace(ctx context.Context, filter interface{}
 	opTrace := &OpTrace{
 		Ctx:        ctx,
 		Op:         OpFindOneAndDelete,
-		OpStep:     OpStepBefore,
 		Collection: col.colname,
 		Dbname:     col.dbname,
 		Opts:       opts,
 		Filter:     filter,
 		Update:     replacement,
 	}
-	// 执行 before
-	err := middlewareBefore(opTrace)
-	if err != nil {
-		return &mongo.SingleResult{}
-	}
-	// 执行Mongo
-	res := col.Collection.FindOneAndReplace(ctx, filter, replacement, opts...)
-	// 执行后置操作
-	opTrace.Res = res
-	opTrace.OpStep = OpStepAfter
-	_ = middlewareAfter(opTrace)
+
+	// 构造mongo执行方法
+	f := newMgoOp(col, opTrace).findOneAndReplaceMgoOp(ctx, filter, replacement, opts...)
+
+	// 执行操作
+	do(f, opTrace)
+
+	// 设置返回结果
+	res, _ := opTrace.Res.(*mongo.SingleResult)
 	return res
 }
 
@@ -530,24 +444,21 @@ func (col *Collection) FindOneAndUpdate(ctx context.Context, filter interface{},
 	opTrace := &OpTrace{
 		Ctx:        ctx,
 		Op:         OpFindOneAndDelete,
-		OpStep:     OpStepBefore,
 		Collection: col.colname,
 		Dbname:     col.dbname,
 		Opts:       opts,
 		Filter:     filter,
 		Update:     update,
 	}
-	// 执行 before
-	err := middlewareBefore(opTrace)
-	if err != nil {
-		return &mongo.SingleResult{}
-	}
-	// 执行Mongo
-	res := col.Collection.FindOneAndUpdate(ctx, filter, update, opts...)
-	// 执行后置操作
-	opTrace.Res = res
-	opTrace.OpStep = OpStepAfter
-	_ = middlewareAfter(opTrace)
+
+	// 构造mongo执行方法
+	f := newMgoOp(col, opTrace).findOneAndUpdateMgoOp(ctx, filter, update, opts...)
+
+	// 执行操作
+	do(f, opTrace)
+
+	// 设置返回结果
+	res, _ := opTrace.Res.(*mongo.SingleResult)
 	return res
 }
 
@@ -557,26 +468,21 @@ func (col *Collection) Watch(ctx context.Context, pipeline interface{},
 	opTrace := &OpTrace{
 		Ctx:        ctx,
 		Op:         OpWatch,
-		OpStep:     OpStepBefore,
 		Collection: col.colname,
 		Dbname:     col.dbname,
 		Opts:       opts,
 		Pipeline:   pipeline,
 	}
-	// 执行 before
-	err := middlewareBefore(opTrace)
-	if err != nil {
-		return nil, err
-	}
-	// 执行Mongo
-	res, mgoErr := col.Collection.Watch(ctx, pipeline, opts...)
-	// 执行后置操作
-	opTrace.Res = res
-	opTrace.ResErr = mgoErr
-	opTrace.OpStep = OpStepAfter
-	_ = middlewareAfter(opTrace)
-	// TODO 记录后置操作错误
-	return res, mgoErr
+
+	// 构造mongo执行方法
+	f := newMgoOp(col, opTrace).watchMgoOp(ctx, pipeline, opts...)
+
+	// 执行操作
+	do(f, opTrace)
+
+	// 设置返回结果
+	res, _ := opTrace.Res.(*mongo.ChangeStream)
+	return res, opTrace.ResErr
 }
 
 func (col *Collection) Indexes(ctx context.Context) mongo.IndexView {
@@ -584,22 +490,18 @@ func (col *Collection) Indexes(ctx context.Context) mongo.IndexView {
 	opTrace := &OpTrace{
 		Ctx:        ctx,
 		Op:         OpIndexes,
-		OpStep:     OpStepBefore,
 		Collection: col.colname,
 		Dbname:     col.dbname,
 	}
-	// 执行 before
-	err := middlewareBefore(opTrace)
-	if err != nil {
-		return mongo.IndexView{}
-	}
-	// 执行Mongo
-	res := col.Collection.Indexes()
-	// 执行后置操作
-	opTrace.Res = res
-	opTrace.OpStep = OpStepAfter
-	_ = middlewareAfter(opTrace)
-	// TODO 记录后置操作错误
+
+	// 构造mongo执行方法
+	f := newMgoOp(col, opTrace).indexesMgoOp(ctx)
+
+	// 执行操作
+	do(f, opTrace)
+
+	// 设置返回结果
+	res, _ := opTrace.Res.(mongo.IndexView)
 	return res
 }
 
@@ -608,23 +510,17 @@ func (col *Collection) Drop(ctx context.Context) error {
 	opTrace := &OpTrace{
 		Ctx:        ctx,
 		Op:         OpDrop,
-		OpStep:     OpStepBefore,
 		Collection: col.colname,
 		Dbname:     col.dbname,
 	}
-	// 执行 before
-	err := middlewareBefore(opTrace)
-	if err != nil {
-		return err
-	}
-	// 执行Mongo
-	res := col.Collection.Drop(ctx)
-	// 执行后置操作
-	opTrace.Res = res
-	opTrace.OpStep = OpStepAfter
-	_ = middlewareAfter(opTrace)
-	// TODO 记录后置操作错误
-	return err
+
+	// 构造mongo执行方法
+	f := newMgoOp(col, opTrace).dropMgoOp(ctx)
+
+	// 执行操作
+	do(f, opTrace)
+
+	return opTrace.ResErr
 }
 
 func (col *Collection) BulkWrite(ctx context.Context, models []mongo.WriteModel,
@@ -633,79 +529,20 @@ func (col *Collection) BulkWrite(ctx context.Context, models []mongo.WriteModel,
 	opTrace := &OpTrace{
 		Ctx:        ctx,
 		Op:         OpFindOneAndDelete,
-		OpStep:     OpStepBefore,
 		Collection: col.colname,
 		Dbname:     col.dbname,
 		Opts:       opts,
 		Models:     models,
 	}
-	// 执行 before
-	err := middlewareBefore(opTrace)
-	if err != nil {
-		return nil, err
-	}
-	// 执行Mongo
-	res, mgoErr := col.Collection.BulkWrite(ctx, models, opts...)
-	// 执行后置操作
-	opTrace.Res = res
-	opTrace.OpStep = OpStepAfter
-	_ = middlewareAfter(opTrace)
-	return res, mgoErr
+	// 构造mongo执行方法
+	f := newMgoOp(col, opTrace).bulkWriteMgoOp(ctx, models, opts...)
+
+	// 执行操作
+	do(f, opTrace)
+
+	// 设置返回结果
+	res, _ := opTrace.Res.(*mongo.BulkWriteResult)
+	return res, opTrace.ResErr
 }
 
 // TODO 将 cursor下的操作记下来，不然span只有请求的部分
-
-func spanFunc(ctx context.Context, dbname, collection string, action action, exec interface{}) opentracing.Span {
-	span := trace.ObtainChildSpan(ctx, string(action)+"::"+dbname+"::"+collection)
-	span.SetTag(trace.TagSpanKind, _traceSpanKind)
-	span.SetTag(trace.TagComponent, _traceComponentName)
-	span.SetTag(trace.TagPeerService, _tracePeerService)
-	span.SetTag(trace.TagBeginAt, time.Now().Format("2006-01-02 15:04:05.000"))
-	defaultFilter := fmt.Sprintf("%+v", exec)
-	builder := RegisterTimestampCodec(nil).Build()
-	vo := reflect.ValueOf(exec)
-	if vo.Kind() == reflect.Ptr {
-		vo = vo.Elem()
-	}
-	switch vo.Kind() {
-	case reflect.Struct, reflect.Map:
-		// 正常序列化
-		b, _ := bson.MarshalExtJSONWithRegistry(builder, exec, true, true)
-		defaultFilter = string(b)
-	case reflect.Slice, reflect.Array:
-		childKind := vo.Type()
-		if childKind.Kind() == reflect.Ptr || childKind.Kind() == reflect.Slice ||
-			childKind.Kind() == reflect.Array {
-			childKind = childKind.Elem()
-		}
-		switch childKind.Kind() {
-		case reflect.Interface:
-			// 对于[]interface型式 使用json原样
-			b, _ := jsoniter.Marshal(exec)
-			defaultFilter = string(b)
-		case reflect.Slice, reflect.Array:
-			// 对于[][]型式 使用append
-			var data []interface{}
-			for i := 0; i < vo.Len(); i++ {
-				var body interface{}
-				b, _ := bson.MarshalExtJSONWithRegistry(builder, vo.Index(i).Interface(), true, true)
-				_ = jsoniter.Unmarshal(b, &body)
-				data = append(data, body)
-			}
-			b, _ := jsoniter.Marshal(data)
-			defaultFilter = string(b)
-		default:
-			b, _ := bson.MarshalExtJSONWithRegistry(builder, exec, true, true)
-			defaultFilter = string(b)
-		}
-	}
-	span.LogFields(
-		log.String(trace.LogEvent, string(action)+"::"+dbname+"::"+collection),
-		log.String("db.exec", defaultFilter),
-	)
-	return span
-}
-
-func spanFinishAt(span opentracing.Span) {
-	span.SetTag(trace.TagFinishAt, time.Now().Format("2006-01-02 15:04:05.000"))
-}
