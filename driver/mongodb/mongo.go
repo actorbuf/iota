@@ -29,6 +29,7 @@ type Collection struct {
 	*mongo.Collection
 	dbname  string
 	colname string
+	cur     *mongo.Cursor
 }
 
 //ConnInit 初始化mongo
@@ -86,7 +87,7 @@ func (c *ClientInit) Database(dbname string, opts ...*options.DatabaseOptions) *
 
 func (db *Database) Collection(collection string, opts ...*options.CollectionOptions) *Collection {
 	col := db.Database.Collection(collection, opts...)
-	return &Collection{col, db.dbname, collection}
+	return &Collection{Collection: col, dbname: db.dbname, colname: collection}
 }
 
 func (col *Collection) InsertOne(ctx context.Context, document interface{},
@@ -545,4 +546,72 @@ func (col *Collection) BulkWrite(ctx context.Context, models []mongo.WriteModel,
 	return res, opTrace.ResErr
 }
 
-// TODO 将 cursor下的操作记下来，不然span只有请求的部分
+func (col *Collection) Cursor(cur *mongo.Cursor) *Collection {
+	col.cur = cur
+	return col
+}
+
+func (col *Collection) checkCursor() bool {
+	return col.cur != nil
+}
+
+func (col *Collection) All(ctx context.Context, results interface{}) error {
+	if !col.checkCursor() {
+		return CursorIsNil
+	}
+
+	// 构造OpTrace
+	opTrace := &OpTrace{
+		Ctx:        ctx,
+		Op:         OpAll,
+		Collection: col.colname,
+		Dbname:     col.dbname,
+	}
+	// 构造mongo执行方法
+	f := newMgoOp(col, opTrace).allMgoOp(ctx, results)
+
+	// 执行操作
+	do(f, opTrace)
+
+	return opTrace.ResErr
+}
+
+func (col *Collection) Next(ctx context.Context) error {
+	if !col.checkCursor() {
+		return CursorIsNil
+	}
+	// 构造OpTrace
+	opTrace := &OpTrace{
+		Ctx:        ctx,
+		Op:         OpNext,
+		Collection: col.colname,
+		Dbname:     col.dbname,
+	}
+	// 构造mongo执行方法
+	f := newMgoOp(col, opTrace).nextMgoOp(ctx)
+
+	// 执行操作
+	do(f, opTrace)
+
+	return opTrace.ResErr
+}
+
+func (col *Collection) Decode(ctx context.Context, val interface{}) error {
+	if !col.checkCursor() {
+		return CursorIsNil
+	}
+	// 构造OpTrace
+	opTrace := &OpTrace{
+		Ctx:        ctx,
+		Op:         OpDecode,
+		Collection: col.colname,
+		Dbname:     col.dbname,
+	}
+	// 构造mongo执行方法
+	f := newMgoOp(col, opTrace).DecodeMgoOp(ctx, val)
+
+	// 执行操作
+	do(f, opTrace)
+
+	return opTrace.ResErr
+}

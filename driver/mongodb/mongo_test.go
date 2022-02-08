@@ -293,8 +293,12 @@ func TestTrace(t *testing.T) {
 
 	findOptions := &options.FindOptions{}
 	findOptions.SetSkip(0)
-	_, err = db.Collection("test").Find(ctx, bson.M{"_id": "1111"}, findOptions)
+	cur, err := db.Collection("test").Find(ctx, bson.M{"_id": "1111"}, findOptions)
 	fmt.Println("Find2", "err", err)
+
+	data := map[string]interface{}{}
+	err = db.Collection("test").Cursor(cur).All(ctx, &data)
+	fmt.Println("All", "err", err)
 
 	pipeline := mongo.Pipeline{
 		bson.D{bson.E{Key: "$match", Value: bson.M{

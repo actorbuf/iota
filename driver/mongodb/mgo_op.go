@@ -186,3 +186,24 @@ func (m *mgoOp) bulkWriteMgoOp(ctx context.Context, models []mongo.WriteModel,
 		op.ResErr = err
 	}
 }
+
+func (m *mgoOp) allMgoOp(ctx context.Context, results interface{}) HandlerFunc {
+	return func(op *OpTrace) {
+		err := m.col.cur.All(ctx, results)
+		op.ResErr = err
+	}
+}
+
+func (m *mgoOp) nextMgoOp(ctx context.Context) HandlerFunc {
+	return func(op *OpTrace) {
+		res := m.col.cur.Next(ctx)
+		op.Res = res
+	}
+}
+
+func (m *mgoOp) DecodeMgoOp(_ context.Context, val interface{}) HandlerFunc {
+	return func(op *OpTrace) {
+		res := m.col.cur.Decode(val)
+		op.Res = res
+	}
+}

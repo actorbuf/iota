@@ -30,6 +30,9 @@ const (
 	OpIndexes           OpType = "Indexes"
 	OpDrop              OpType = "Drop"
 	OpBulkWrite         OpType = "BulkWrite"
+	OpAll               OpType = "All"
+	OpNext              OpType = "Next"
+	OpDecode            OpType = "Decode"
 )
 
 // OpTrace 记录操作的执行过程
@@ -66,4 +69,9 @@ func (op *OpTrace) Next() {
 		op.handlers[op.handleIndex](op)
 		op.handleIndex++
 	}
+}
+
+func (op *OpTrace) IsCursor() bool {
+	_, resCur := op.Res.(*mongo.Cursor)
+	return resCur
 }

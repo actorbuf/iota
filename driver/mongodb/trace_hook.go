@@ -86,8 +86,14 @@ func (j *jaegerHook) After(op *OpTrace) error {
 	if trace.IsNoopSpan(span) {
 		return nil
 	}
-	// 记录执行结果
-	defer span.Finish()
+
+	// TODO 记录到curAll跟curNext
+
+	// 不是cursor类型的。直接记录执行结果
+	if !op.IsCursor() && op.ResErr != nil {
+		defer span.Finish()
+	}
+
 	if op.ResErr != nil {
 		ext.Error.Set(span, true)
 		span.LogFields(log.String("db.exec.err", op.ResErr.Error()))
