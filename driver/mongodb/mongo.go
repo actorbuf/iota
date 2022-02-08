@@ -6,7 +6,6 @@ import (
 	"github.com/actorbuf/iota/trace"
 	jsoniter "github.com/json-iterator/go"
 	"github.com/opentracing/opentracing-go"
-	"github.com/opentracing/opentracing-go/ext"
 	"github.com/opentracing/opentracing-go/log"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -554,32 +553,77 @@ func (col *Collection) FindOneAndUpdate(ctx context.Context, filter interface{},
 
 func (col *Collection) Watch(ctx context.Context, pipeline interface{},
 	opts ...*options.ChangeStreamOptions) (*mongo.ChangeStream, error) {
-	span := spanFunc(ctx, col.dbname, col.colname, Watch, pipeline)
-	defer span.Finish()
-	defer spanFinishAt(span)
-	res, err := col.Collection.Watch(ctx, pipeline, opts...)
-	if err != nil {
-		ext.Error.Set(span, true)
+	// 构造OpTrace
+	opTrace := &OpTrace{
+		Ctx:        ctx,
+		Op:         OpWatch,
+		OpStep:     OpStepBefore,
+		Collection: col.colname,
+		Dbname:     col.dbname,
+		Opts:       opts,
+		Pipeline:   pipeline,
 	}
-	return res, err
+	// 执行 before
+	err := middlewareBefore(opTrace)
+	if err != nil {
+		return nil, err
+	}
+	// 执行Mongo
+	res, mgoErr := col.Collection.Watch(ctx, pipeline, opts...)
+	// 执行后置操作
+	opTrace.Res = res
+	opTrace.ResErr = mgoErr
+	opTrace.OpStep = OpStepAfter
+	_ = middlewareAfter(opTrace)
+	// TODO 记录后置操作错误
+	return res, mgoErr
 }
 
 func (col *Collection) Indexes(ctx context.Context) mongo.IndexView {
-	span := spanFunc(ctx, col.dbname, col.colname, Indexes, "")
-	defer span.Finish()
-	defer spanFinishAt(span)
+	// 构造OpTrace
+	opTrace := &OpTrace{
+		Ctx:        ctx,
+		Op:         OpIndexes,
+		OpStep:     OpStepBefore,
+		Collection: col.colname,
+		Dbname:     col.dbname,
+	}
+	// 执行 before
+	err := middlewareBefore(opTrace)
+	if err != nil {
+		return mongo.IndexView{}
+	}
+	// 执行Mongo
 	res := col.Collection.Indexes()
+	// 执行后置操作
+	opTrace.Res = res
+	opTrace.OpStep = OpStepAfter
+	_ = middlewareAfter(opTrace)
+	// TODO 记录后置操作错误
 	return res
 }
 
 func (col *Collection) Drop(ctx context.Context) error {
-	span := spanFunc(ctx, col.dbname, col.colname, Drop, "")
-	defer span.Finish()
-	defer spanFinishAt(span)
-	err := col.Collection.Drop(ctx)
-	if err != nil {
-		ext.Error.Set(span, true)
+	// 构造OpTrace
+	opTrace := &OpTrace{
+		Ctx:        ctx,
+		Op:         OpDrop,
+		OpStep:     OpStepBefore,
+		Collection: col.colname,
+		Dbname:     col.dbname,
 	}
+	// 执行 before
+	err := middlewareBefore(opTrace)
+	if err != nil {
+		return err
+	}
+	// 执行Mongo
+	res := col.Collection.Drop(ctx)
+	// 执行后置操作
+	opTrace.Res = res
+	opTrace.OpStep = OpStepAfter
+	_ = middlewareAfter(opTrace)
+	// TODO 记录后置操作错误
 	return err
 }
 

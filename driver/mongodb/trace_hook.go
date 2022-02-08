@@ -50,7 +50,7 @@ func (j *jaegerHook) Before(op *OpTrace) error {
 			log.String("db.exec.filter", execStrLimitLen(execStr(op.Filter))),
 			log.String("db.exec.replacement", execStrLimitLen(execStr(op.Update))),
 		)
-	case OpAggregate:
+	case OpAggregate, OpWatch:
 		logField = append(logField,
 			log.String("db.exec.pipeline", execStrLimitLen(execStr(op.Pipeline))),
 		)

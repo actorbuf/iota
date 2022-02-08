@@ -25,6 +25,9 @@ const (
 	OpFindOneAndDelete  OpType = "FindOneAndDelete"
 	OpFindOneAndReplace OpType = "FindOneAndReplace"
 	OpFindOneAndUpdate  OpType = "FindOneAndUpdate"
+	OpWatch             OpType = "Watch"
+	OpIndexes           OpType = "Indexes"
+	OpDrop              OpType = "Drop"
 	OpBulkWrite         OpType = "BulkWrite"
 )
 
