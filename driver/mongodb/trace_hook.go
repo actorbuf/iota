@@ -11,7 +11,7 @@ import (
 	"reflect"
 )
 
-const ExecStrLenMax = 3000
+const DefaultExecStrLenMax = 3000
 
 type jaegerHook struct {
 	// useCur 是否使用 jaeger 的all跟close方法。
@@ -19,12 +19,28 @@ type jaegerHook struct {
 	// 如果开启 jaegerHook，且使用 iota mongodb 的find等返回cur的方法，但是没有使用 iota cur 做all、decode等方法处理
 	// 而是拿 iota cur 下的 mongo.Cursor 做处理，设置 useCur false，否则 span将不会 Finish。
 	useCur bool
+
+	// execEncode 参数解析器
+	execEncode func(exec interface{}) string
+
+	// execStrLenMax 记录执行结果的最大长度，默认 DefaultExecStrLenMax
+	execStrLenMax int
 }
 
-var _jaegerHook = &jaegerHook{useCur: true}
+var _jaegerHook = &jaegerHook{useCur: true, execEncode: execStr, execStrLenMax: DefaultExecStrLenMax}
 
 func NewJaegerHook(useCur bool) HandlerFunc {
 	_jaegerHook.useCur = useCur
+	return func(op *OpTrace) {
+		_ = _jaegerHook.Before(op)
+		op.Next()
+		_ = _jaegerHook.After(op)
+	}
+}
+
+// CustomJaegerHook 自定义jaegerHook
+func CustomJaegerHook(useCur bool, execEncode func(exec interface{}) string, execStrLenMax int) HandlerFunc {
+	_jaegerHook := &jaegerHook{useCur: useCur, execEncode: execEncode, execStrLenMax: execStrLenMax}
 	return func(op *OpTrace) {
 		_ = _jaegerHook.Before(op)
 		op.Next()
@@ -48,33 +64,33 @@ func (j *jaegerHook) Before(op *OpTrace) error {
 	span.SetTag(trace.TagPeerService, _tracePeerService)
 
 	logField := []log.Field{
-		log.String("db.exec.options", execStrLimitLen(execStr(op.Opts))),
+		log.String("db.exec.options", j.execStrLimitLen(j.execEncode(op.Opts))),
 	}
 
 	// 限制部分字符长度
 	switch op.Op {
 	case OpInsertOne, OpInsertMany:
-		logField = append(logField, log.String("db.exec.documents", execStrLimitLen(execStr(op.InsertDocuments))))
+		logField = append(logField, log.String("db.exec.documents", j.execStrLimitLen(j.execEncode(op.InsertDocuments))))
 	case OpDeleteOne, OpDeleteMany, OpCountDocuments, OpFind, OpFindOne, OpFindOneAndDelete:
-		logField = append(logField, log.String("db.exec.filter", execStrLimitLen(execStr(op.Filter))))
+		logField = append(logField, log.String("db.exec.filter", j.execStrLimitLen(j.execEncode(op.Filter))))
 	case OpUpdateOne, OpUpdateMany, OpFindOneAndUpdate:
 		logField = append(logField,
-			log.String("db.exec.filter", execStrLimitLen(execStr(op.Filter))),
-			log.String("db.exec.update", execStrLimitLen(execStr(op.Update))),
+			log.String("db.exec.filter", j.execStrLimitLen(j.execEncode(op.Filter))),
+			log.String("db.exec.update", j.execStrLimitLen(j.execEncode(op.Update))),
 		)
 	case OpReplaceOne, OpFindOneAndReplace:
 		logField = append(logField,
-			log.String("db.exec.filter", execStrLimitLen(execStr(op.Filter))),
-			log.String("db.exec.replacement", execStrLimitLen(execStr(op.Update))),
+			log.String("db.exec.filter", j.execStrLimitLen(j.execEncode(op.Filter))),
+			log.String("db.exec.replacement", j.execStrLimitLen(j.execEncode(op.Update))),
 		)
 	case OpAggregate, OpWatch:
 		logField = append(logField,
-			log.String("db.exec.pipeline", execStrLimitLen(execStr(op.Pipeline))),
+			log.String("db.exec.pipeline", j.execStrLimitLen(j.execEncode(op.Pipeline))),
 		)
 	case OpDistinct:
 		logField = append(logField,
-			log.String("db.exec.fieldName", execStrLimitLen(execStr(op.FieldName))),
-			log.String("db.exec.filter", execStrLimitLen(execStr(op.Filter))),
+			log.String("db.exec.fieldName", j.execStrLimitLen(j.execEncode(op.FieldName))),
+			log.String("db.exec.filter", j.execStrLimitLen(j.execEncode(op.Filter))),
 		)
 	case OpBulkWrite:
 		spanLogs := bson.M{
@@ -86,7 +102,7 @@ func (j *jaegerHook) Before(op *OpTrace) error {
 			spanLogs["info"] = "数据过多,只显示前5项"
 		}
 		logField = append(logField,
-			log.String("db.exec.models", execStrLimitLen(execStr(spanLogs))),
+			log.String("db.exec.models", j.execStrLimitLen(j.execEncode(spanLogs))),
 		)
 	}
 	// 植入对应的log
@@ -139,9 +155,9 @@ func (j *jaegerHook) After(op *OpTrace) error {
 	return nil
 }
 
-func execStrLimitLen(execStr string) string {
-	if len(execStr) > ExecStrLenMax {
-		return execStr[0:ExecStrLenMax]
+func (j *jaegerHook) execStrLimitLen(execStr string) string {
+	if len(execStr) > j.execStrLenMax {
+		return execStr[0:j.execStrLenMax]
 	}
 	return execStr
 }

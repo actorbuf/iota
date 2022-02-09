@@ -59,12 +59,16 @@ type OpTrace struct {
 	// Res 执行结果
 	Res interface{}
 	// ResErr 执行错误
-	ResErr      error
-	handlers    []HandlerFunc
+	ResErr error
+	// handlers 中间件
+	handlers []HandlerFunc
+	// handleIndex 当前中间件下标
 	handleIndex int32
-	curOpCtx    context.Context
+	// curOpCtx 生成cur的opTrace的ctx
+	curOpCtx context.Context
 }
 
+// Next 调用下一个handle
 func (op *OpTrace) Next() {
 	atomic.AddInt32(&op.handleIndex, 1)
 	for op.handleIndex < int32(len(op.handlers)) {
@@ -73,13 +77,15 @@ func (op *OpTrace) Next() {
 	}
 }
 
-func (op *OpTrace) do() {
+// start 执行首次操作
+func (op *OpTrace) start() {
 	for op.handleIndex < int32(len(op.handlers)) {
 		op.handlers[op.handleIndex](op)
 		atomic.AddInt32(&op.handleIndex, 1)
 	}
 }
 
+// IsCursor 当前操作结果是否为 Cursor，后置中间件中使用
 func (op *OpTrace) IsCursor() bool {
 	_, resCur := op.Res.(*Cursor)
 	return resCur
