@@ -110,8 +110,6 @@ func (j *jaegerHook) After(op *OpTrace) error {
 		return nil
 	}
 
-	// TODO 处理findOne
-
 	// 如果是all或者close，记录到错误
 	if op.Op == OpAll || op.Op == OpClose {
 		defer span.Finish()
