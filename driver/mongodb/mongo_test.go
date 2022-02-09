@@ -296,9 +296,28 @@ func TestTrace(t *testing.T) {
 	cur, err := db.Collection("test").Find(ctx, bson.M{"_id": "1111"}, findOptions)
 	fmt.Println("Find2", "err", err)
 
-	data := map[string]interface{}{}
-	err = db.Collection("test").Cursor(cur).All(ctx, &data)
+	var data []map[string]interface{}
+	err = cur.All(ctx, &data)
 	fmt.Println("All", "err", err)
+	fmt.Println("All", "data", data)
+
+	cur, err = db.Collection("test").Find(ctx, bson.M{"_id": "1111"})
+	fmt.Println("Find2", "err", err)
+
+	data = make([]map[string]interface{}, 0)
+	for cur.Next(ctx) {
+		tmp := make(map[string]interface{})
+		err = cur.Decode(ctx, &tmp)
+		if err != nil {
+			fmt.Println("Decode", "err", err)
+			return
+		}
+		data = append(data, tmp)
+	}
+	err = cur.Close(ctx)
+	if err != nil {
+		fmt.Println("Close", "err", err)
+	}
 
 	pipeline := mongo.Pipeline{
 		bson.D{bson.E{Key: "$match", Value: bson.M{

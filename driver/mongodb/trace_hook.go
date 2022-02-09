@@ -1,6 +1,7 @@
 package mongodb
 
 import (
+	"context"
 	"fmt"
 	"github.com/actorbuf/iota/trace"
 	jsoniter "github.com/json-iterator/go"
@@ -12,7 +13,11 @@ import (
 
 const ExecStrLenMax = 3000
 
-type jaegerHook struct{}
+type jaegerHook struct {
+	// UseCur 是否使用 jaeger 的all跟close方法。
+	// 如果使用 jaegerHook，且使用 iota mongodb 的find等返回cur的方法，但是没有使用
+	UseCur bool
+}
 
 var _jaegerHook = new(jaegerHook)
 
@@ -25,6 +30,11 @@ func NewJaegerHook() HandlerFunc {
 }
 
 func (j *jaegerHook) Before(op *OpTrace) error {
+	// cur 相关操作没有前置
+	if op.Op == OpAll || op.Op == OpClose || op.Op == OpNext || op.Op == OpDecode {
+		return nil
+	}
+
 	// 开启span
 	span := trace.ObtainChildSpan(op.Ctx, fmt.Sprintf("%s::%s::%s", string(op.Op), op.Dbname, op.Collection))
 	op.Ctx = trace.NewTracerContext(op.Ctx, span)
@@ -82,18 +92,35 @@ func (j *jaegerHook) Before(op *OpTrace) error {
 }
 
 func (j *jaegerHook) After(op *OpTrace) error {
-	span := trace.ObtainCtxSpan(op.Ctx)
+	// next跟decode不处理
+	if op.Op == OpDecode || op.Op == OpNext {
+		return nil
+	}
+
+	// 获取对应的ctx
+	var spanCtx context.Context
+	if op.Op == OpAll || op.Op == OpClose {
+		spanCtx = op.curOpCtx
+	} else {
+		spanCtx = op.Ctx
+	}
+
+	span := trace.ObtainCtxSpan(spanCtx)
 	if trace.IsNoopSpan(span) {
 		return nil
 	}
 
-	// TODO 记录到curAll跟curNext
+	// TODO 处理findOne
 
-	// 不是cursor类型的。直接记录执行结果
-	if !op.IsCursor() && op.ResErr != nil {
+	// 如果是all或者close，记录到错误
+	if op.Op == OpAll || op.Op == OpClose {
+		defer span.Finish()
+	} else if !op.IsCursor() || op.ResErr != nil {
+		// 如果返回cur获取有错误直接记录，返回cur的等到curClose或者curAll再做处理
 		defer span.Finish()
 	}
 
+	// 记录错误信息
 	if op.ResErr != nil {
 		ext.Error.Set(span, true)
 		span.LogFields(log.String("db.exec.err", op.ResErr.Error()))

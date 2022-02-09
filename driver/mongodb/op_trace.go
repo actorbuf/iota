@@ -33,6 +33,7 @@ const (
 	OpAll               OpType = "All"
 	OpNext              OpType = "Next"
 	OpDecode            OpType = "Decode"
+	OpClose             OpType = "Close"
 )
 
 // OpTrace 记录操作的执行过程
@@ -61,17 +62,18 @@ type OpTrace struct {
 	ResErr      error
 	handlers    []HandlerFunc
 	handleIndex int32
+	curOpCtx    context.Context
 }
 
 func (op *OpTrace) Next() {
 	atomic.AddInt32(&op.handleIndex, 1)
 	for op.handleIndex < int32(len(op.handlers)) {
 		op.handlers[op.handleIndex](op)
-		op.handleIndex++
+		atomic.AddInt32(&op.handleIndex, 1)
 	}
 }
 
 func (op *OpTrace) IsCursor() bool {
-	_, resCur := op.Res.(*mongo.Cursor)
+	_, resCur := op.Res.(*Cursor)
 	return resCur
 }

@@ -29,7 +29,6 @@ type Collection struct {
 	*mongo.Collection
 	dbname  string
 	colname string
-	cur     *mongo.Cursor
 }
 
 //ConnInit 初始化mongo
@@ -279,7 +278,7 @@ func (col *Collection) ReplaceOne(ctx context.Context, filter interface{},
 }
 
 func (col *Collection) Aggregate(ctx context.Context, pipeline interface{},
-	opts ...*options.AggregateOptions) (*mongo.Cursor, error) {
+	opts ...*options.AggregateOptions) (*Cursor, error) {
 	// 构造OpTrace
 	opTrace := &OpTrace{
 		Ctx:        ctx,
@@ -297,7 +296,7 @@ func (col *Collection) Aggregate(ctx context.Context, pipeline interface{},
 	do(f, opTrace)
 
 	// 设置返回结果
-	res, _ := opTrace.Res.(*mongo.Cursor)
+	res, _ := opTrace.Res.(*Cursor)
 	return res, opTrace.ResErr
 }
 
@@ -348,7 +347,7 @@ func (col *Collection) Distinct(ctx context.Context, fieldName string, filter in
 }
 
 func (col *Collection) Find(ctx context.Context, filter interface{},
-	opts ...*options.FindOptions) (*mongo.Cursor, error) {
+	opts ...*options.FindOptions) (*Cursor, error) {
 	// 构造OpTrace
 	opTrace := &OpTrace{
 		Ctx:        ctx,
@@ -366,7 +365,7 @@ func (col *Collection) Find(ctx context.Context, filter interface{},
 	do(f, opTrace)
 
 	// 设置返回结果
-	res, _ := opTrace.Res.(*mongo.Cursor)
+	res, _ := opTrace.Res.(*Cursor)
 	return res, opTrace.ResErr
 }
 
@@ -544,74 +543,4 @@ func (col *Collection) BulkWrite(ctx context.Context, models []mongo.WriteModel,
 	// 设置返回结果
 	res, _ := opTrace.Res.(*mongo.BulkWriteResult)
 	return res, opTrace.ResErr
-}
-
-func (col *Collection) Cursor(cur *mongo.Cursor) *Collection {
-	col.cur = cur
-	return col
-}
-
-func (col *Collection) checkCursor() bool {
-	return col.cur != nil
-}
-
-func (col *Collection) All(ctx context.Context, results interface{}) error {
-	if !col.checkCursor() {
-		return CursorIsNil
-	}
-
-	// 构造OpTrace
-	opTrace := &OpTrace{
-		Ctx:        ctx,
-		Op:         OpAll,
-		Collection: col.colname,
-		Dbname:     col.dbname,
-	}
-	// 构造mongo执行方法
-	f := newMgoOp(col, opTrace).allMgoOp(ctx, results)
-
-	// 执行操作
-	do(f, opTrace)
-
-	return opTrace.ResErr
-}
-
-func (col *Collection) Next(ctx context.Context) error {
-	if !col.checkCursor() {
-		return CursorIsNil
-	}
-	// 构造OpTrace
-	opTrace := &OpTrace{
-		Ctx:        ctx,
-		Op:         OpNext,
-		Collection: col.colname,
-		Dbname:     col.dbname,
-	}
-	// 构造mongo执行方法
-	f := newMgoOp(col, opTrace).nextMgoOp(ctx)
-
-	// 执行操作
-	do(f, opTrace)
-
-	return opTrace.ResErr
-}
-
-func (col *Collection) Decode(ctx context.Context, val interface{}) error {
-	if !col.checkCursor() {
-		return CursorIsNil
-	}
-	// 构造OpTrace
-	opTrace := &OpTrace{
-		Ctx:        ctx,
-		Op:         OpDecode,
-		Collection: col.colname,
-		Dbname:     col.dbname,
-	}
-	// 构造mongo执行方法
-	f := newMgoOp(col, opTrace).DecodeMgoOp(ctx, val)
-
-	// 执行操作
-	do(f, opTrace)
-
-	return opTrace.ResErr
 }

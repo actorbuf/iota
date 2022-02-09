@@ -9,6 +9,7 @@ import (
 type mgoOp struct {
 	col *Collection
 	op  *OpTrace
+	cur *Cursor
 }
 
 func newMgoOp(col *Collection, op *OpTrace) *mgoOp {
@@ -91,7 +92,7 @@ func (m *mgoOp) aggregateMgoOp(ctx context.Context, pipeline interface{},
 	opts ...*options.AggregateOptions) HandlerFunc {
 	return func(op *OpTrace) {
 		res, mgoErr := m.col.Collection.Aggregate(ctx, pipeline, opts...)
-		op.Res = res
+		op.Res = &Cursor{Cursor: res, col: m.col, opCtx: op.Ctx}
 		op.ResErr = mgoErr
 	}
 }
@@ -118,7 +119,7 @@ func (m *mgoOp) findMgoOp(ctx context.Context, filter interface{},
 	opts ...*options.FindOptions) HandlerFunc {
 	return func(op *OpTrace) {
 		res, mgoErr := m.col.Collection.Find(ctx, filter, opts...)
-		op.Res = res
+		op.Res = &Cursor{Cursor: res, col: m.col, opCtx: op.Ctx}
 		op.ResErr = mgoErr
 	}
 }
@@ -189,21 +190,33 @@ func (m *mgoOp) bulkWriteMgoOp(ctx context.Context, models []mongo.WriteModel,
 
 func (m *mgoOp) allMgoOp(ctx context.Context, results interface{}) HandlerFunc {
 	return func(op *OpTrace) {
-		err := m.col.cur.All(ctx, results)
+		err := m.cur.Cursor.All(ctx, results)
 		op.ResErr = err
 	}
 }
 
+func (m *mgoOp) cursor(cur *Cursor) *mgoOp {
+	m.cur = cur
+	return m
+}
+
 func (m *mgoOp) nextMgoOp(ctx context.Context) HandlerFunc {
 	return func(op *OpTrace) {
-		res := m.col.cur.Next(ctx)
+		res := m.cur.Cursor.Next(ctx)
 		op.Res = res
 	}
 }
 
-func (m *mgoOp) DecodeMgoOp(_ context.Context, val interface{}) HandlerFunc {
+func (m *mgoOp) decodeMgoOp(_ context.Context, val interface{}) HandlerFunc {
 	return func(op *OpTrace) {
-		res := m.col.cur.Decode(val)
+		res := m.cur.Cursor.Decode(val)
+		op.Res = res
+	}
+}
+
+func (m *mgoOp) curCloseMgoOp(ctx context.Context) HandlerFunc {
+	return func(op *OpTrace) {
+		res := m.cur.Cursor.Close(ctx)
 		op.Res = res
 	}
 }

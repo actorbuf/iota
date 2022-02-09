@@ -15,5 +15,5 @@ func do(f HandlerFunc, op *OpTrace) {
 		return
 	}
 	// 执行对应的操作链
-	op.handlers[0](op)
+	op.Next()
 }
