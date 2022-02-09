@@ -11,6 +11,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"reflect"
 	"testing"
+	"time"
 )
 
 func TestPipeline(t *testing.T) {
@@ -230,7 +231,12 @@ func TestTrace(t *testing.T) {
 	}()
 
 	// 加入jaeger
-	AddMiddleware2(NewJaegerHook(false))
+	AddMiddleware2(NewJaegerHook(true))
+
+	start := time.Now()
+	defer func() {
+		fmt.Println("time", time.Now().Sub(start).Milliseconds())
+	}()
 
 	var ctx = context.Background()
 
