@@ -27,6 +27,11 @@ func (r *RabbitMQ) SetAlarm(alarm Alarm) *RabbitMQ {
 	return r
 }
 
+func (r *RabbitMQ) WithLogger(logger Logger) *RabbitMQ {
+	r.logger = logger
+	return r
+}
+
 func (r *RabbitMQ) SetConfig(config *Config) *RabbitMQ {
 	r.config = config
 	return r
