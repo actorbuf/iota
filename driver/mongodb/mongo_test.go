@@ -230,7 +230,7 @@ func TestTrace(t *testing.T) {
 	}()
 
 	// 加入jaeger
-	AddMiddleware2(NewJaegerHook())
+	AddMiddleware2(NewJaegerHook(false))
 
 	var ctx = context.Background()
 
@@ -328,8 +328,14 @@ func TestTrace(t *testing.T) {
 			Value: 0,
 		}},
 	}
-	_, err = db.Collection("test").Aggregate(ctx, pipeline)
-	fmt.Println("Aggregate2", "err", err)
+	cur, err = db.Collection("test").Aggregate(ctx, pipeline)
+	if err != nil {
+		fmt.Println("Aggregate", "err", err)
+	} else {
+		err = cur.All(ctx, &data)
+		fmt.Println("Aggregate All", "data", data)
+		fmt.Println("Aggregate All", "err", err)
+	}
 }
 
 func TestExecStr(t *testing.T) {

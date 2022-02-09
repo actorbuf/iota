@@ -14,14 +14,17 @@ import (
 const ExecStrLenMax = 3000
 
 type jaegerHook struct {
-	// UseCur 是否使用 jaeger 的all跟close方法。
-	// 如果使用 jaegerHook，且使用 iota mongodb 的find等返回cur的方法，但是没有使用
-	UseCur bool
+	// useCur 是否使用 jaeger 的all跟close方法。
+	// 建议设置为true，且使用 iota mongodb 的 Cursor
+	// 如果开启 jaegerHook，且使用 iota mongodb 的find等返回cur的方法，但是没有使用 iota cur 做all、decode等方法处理
+	// 而是拿 iota cur 下的 mongo.Cursor 做处理，设置 useCur false，否则 span将不会 Finish。
+	useCur bool
 }
 
-var _jaegerHook = new(jaegerHook)
+var _jaegerHook = &jaegerHook{useCur: true}
 
-func NewJaegerHook() HandlerFunc {
+func NewJaegerHook(useCur bool) HandlerFunc {
+	_jaegerHook.useCur = useCur
 	return func(op *OpTrace) {
 		_ = _jaegerHook.Before(op)
 		op.Next()
@@ -92,6 +95,11 @@ func (j *jaegerHook) Before(op *OpTrace) error {
 }
 
 func (j *jaegerHook) After(op *OpTrace) error {
+	// 如果没有使用cur，那么对cur不做处理
+	if !j.useCur && (op.Op == OpAll || op.Op == OpClose) {
+		return nil
+	}
+
 	// next跟decode不处理
 	if op.Op == OpDecode || op.Op == OpNext {
 		return nil
@@ -110,12 +118,17 @@ func (j *jaegerHook) After(op *OpTrace) error {
 		return nil
 	}
 
-	// 如果是all或者close，记录到错误
-	if op.Op == OpAll || op.Op == OpClose {
+	// 不是用cur的直接设置span为finish
+	if !j.useCur {
 		defer span.Finish()
-	} else if !op.IsCursor() || op.ResErr != nil {
-		// 如果返回cur获取有错误直接记录，返回cur的等到curClose或者curAll再做处理
-		defer span.Finish()
+	} else {
+		// 如果是all或者close，记录到错误
+		if op.Op == OpAll || op.Op == OpClose {
+			defer span.Finish()
+		} else if !op.IsCursor() || op.ResErr != nil {
+			// 如果返回cur获取有错误直接记录，返回cur的等到curClose或者curAll再做处理
+			defer span.Finish()
+		}
 	}
 
 	// 记录错误信息

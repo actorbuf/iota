@@ -73,6 +73,13 @@ func (op *OpTrace) Next() {
 	}
 }
 
+func (op *OpTrace) do() {
+	for op.handleIndex < int32(len(op.handlers)) {
+		op.handlers[op.handleIndex](op)
+		atomic.AddInt32(&op.handleIndex, 1)
+	}
+}
+
 func (op *OpTrace) IsCursor() bool {
 	_, resCur := op.Res.(*Cursor)
 	return resCur
