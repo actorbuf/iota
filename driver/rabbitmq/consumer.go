@@ -4,10 +4,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"os"
-
-	"github.com/streadway/amqp"
+	amqp "github.com/rabbitmq/amqp091-go"
 	"go.uber.org/zap"
+	"os"
 	"os/signal"
 	"sync"
 	"syscall"
