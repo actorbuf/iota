@@ -17,3 +17,5 @@
 .idea
 go.sum
 component/excel/try/*.xlsx
+internal/
+router/
