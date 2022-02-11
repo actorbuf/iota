@@ -33,25 +33,5 @@ func ResponseCompatible(data interface{}) interface{} {
 		return data
 	}
 
-	// 是否兜一层
-	//if vo.Kind() == reflect.Ptr {
-	//	vo = vo.Elem()
-	//}
-	//if vo.Kind() == reflect.Struct {
-	//	for i := 0; i < vo.NumField(); i++ {
-	//		field := vo.Field(i)
-	//		if valueIsNil(field) {
-	//			if field.CanSet() {
-	//				fieldType := field.Type()
-	//				if fieldType.Kind() == reflect.Ptr {
-	//					fieldType = fieldType.Elem()
-	//				}
-	//				realv := reflect.New(fieldType)
-	//				field.Set(realv)
-	//			}
-	//		}
-	//	}
-	//}
-
 	return data
 }

@@ -1,23 +1,15 @@
 package core
 
 import (
-	"bytes"
 	"fmt"
 	"github.com/gin-gonic/gin"
-	"github.com/go-playground/validator/v10"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-	"gitlab.heywoods.cn/go-sdk/jsoniter"
-	schema "gitlab.heywoods.cn/go-sdk/query-parser"
-	"io/ioutil"
 	"net/http"
 	"reflect"
 	"runtime"
 	"runtime/debug"
-	"strings"
 )
-
-var json = jsoniter.ConfigCompatibleWithWeb
 
 // BindGroupRouteSrv 使用组路由注册的结构体都需要实现这个接口
 type BindGroupRouteSrv interface {
@@ -28,20 +20,13 @@ type BindGroupRouteSrv interface {
 // Register 是一个组路由注射器
 // 只能通过NewRegister()进行实例化 否则会panic
 type Register struct {
-	// jsonEncoder 序列化控制器
-	jsonEncoder jsoniter.API
-	// GET参数解析器
-	queryDecoder *schema.Decoder
 	// 路由配置文件 是proto同级的 autogen_router_module.go 文件中的 GroupRouterMap
 	routeMap map[string]*GroupRouter
 }
 
 // NewRegister 实例化注册器
 func NewRegister() *Register {
-	var register = &Register{queryDecoder: schema.NewDecoder()}
-	register.queryDecoder.IgnoreUnknownKeys(true)
-	register.queryDecoder.SetAliasTag("json")
-	register.jsonEncoder = json
+	var register = &Register{}
 	return register
 }
 
@@ -49,12 +34,6 @@ func NewRegister() *Register {
 // 入参m: proto同级的 autogen_router_module.go 文件中的 GroupRouterMap
 func (r *Register) BindRouteMap(m map[string]*GroupRouter) *Register {
 	r.routeMap = m
-	return r
-}
-
-// SetJSONConfig 输出json格式的 jsoniter 控制器 默认使用 包变量 "json"
-func (r *Register) SetJSONConfig(c jsoniter.Config) *Register {
-	r.jsonEncoder = c.Froze()
 	return r
 }
 
@@ -122,11 +101,9 @@ func (r *Register) registerMiddleware(router gin.IRouter, mws []gin.HandlerFunc)
 func (r *Register) registerHandle(router gin.IRouter, rc *GroupRouterNode, rFunc, rGroup reflect.Value) error {
 	call, err := r.getCallFunc(rFunc, rGroup)
 	if err != nil {
-		logrus.Errorf("get call err: %+v", err)
 		return err
 	}
 	if call == nil {
-		logrus.Warnf("get call func nil")
 		return nil
 	}
 
@@ -232,13 +209,11 @@ func (r *Register) getCallFunc(rFunc, rGroup reflect.Value) (gin.HandlerFunc, er
 			rerr := returnValues[1].Interface()
 
 			if rerr == nil {
-				c.Writer.WriteHeader(http.StatusOK)
-				respData, _ := r.jsonEncoder.Marshal(Result{
+				c.JSON(http.StatusOK, Result{
 					ErrCode: ErrNil,
 					ErrMsg:  "ok",
 					Data:    ResponseCompatible(resp),
 				})
-				_, _ = c.Writer.Write(respData)
 				return
 			}
 
@@ -263,13 +238,11 @@ func (r *Register) getCallFunc(rFunc, rGroup reflect.Value) (gin.HandlerFunc, er
 				errMsg = GetErrMsg(int32(errCode))
 			}
 
-			c.Writer.WriteHeader(http.StatusOK)
-			respData, _ := r.jsonEncoder.Marshal(Result{
+			c.JSON(http.StatusOK, Result{
 				ErrCode: errCode,
 				ErrMsg:  errMsg,
 				Data:    ResponseCompatible(resp),
 			})
-			_, _ = c.Writer.Write(respData)
 			return
 		}
 	}, nil
@@ -277,56 +250,8 @@ func (r *Register) getCallFunc(rFunc, rGroup reflect.Value) (gin.HandlerFunc, er
 
 // bindAndValidate 绑定并校验参数
 func (r *Register) bindAndValidate(c *gin.Context, req interface{}) error {
-	bodyBytes, _ := ioutil.ReadAll(c.Request.Body)
-	c.Request.Body.Close()
-	c.Request.Body = ioutil.NopCloser(bytes.NewBuffer(bodyBytes))
-
-	// 校验
-	if c.Request.Method == http.MethodGet {
-		err := r.queryDecoder.Decode(req, c.Request.URL.Query())
-		if err != nil {
-			logrus.Errorf("unmarshal err: %+v", err)
-			return err
-		}
-	} else {
-		// 对于POST的非json传递
-		if !strings.Contains(c.ContentType(), "application/json") {
-			return nil
-		}
-		if len(bodyBytes) == 0 {
-			bodyBytes = []byte("{}")
-		}
-		err := json.Unmarshal(bodyBytes, req)
-		if err != nil {
-			logrus.Errorf("unmarshal err: %+v", err)
-			return err
-		}
-	}
-
-	var validate = validator.New()
-	validate.RegisterTagNameFunc(func(field reflect.StructField) string {
-		name := strings.SplitN(field.Tag.Get("json"), ",", 2)[0]
-		if name == "" {
-			return field.Name
-		}
-		if name == "-" {
-			return ""
-		}
-		return name
-	})
-
-	err := validate.Struct(req)
-	if err != nil {
-		if _, ok := err.(*validator.InvalidValidationError); ok {
-			logrus.Errorf("validate err: %+v", err)
-			return err
-		}
-
-		for _, val := range err.(validator.ValidationErrors) {
-			return fmt.Errorf("invalid request, field %s, rule %s", val.Field(), val.Tag())
-		}
+	if err := c.ShouldBind(req); err != nil {
 		return err
 	}
-
 	return nil
 }
