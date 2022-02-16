@@ -1,0 +1,23 @@
+syntax = "proto3";
+
+package core;
+
+
+option go_package = "./;core";
+
+message ErrMsg {
+    int32  err_code = 1;
+    string err_msg  = 2;
+    string hint     = 3;
+    string trace_id = 4;
+    // @json: -
+    bool autonomy = 5;
+}
+
+message TestStruct {
+    TestChileStruct child = 1;
+}
+
+message TestChileStruct {
+    string ping = 1;
+}
