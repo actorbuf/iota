@@ -41,12 +41,12 @@ func initProducer(log *log) {
 		}
 		mq := new(rabbitmq.RabbitMQ).SetConfig(&rabbitmq.Config{
 			Address:         address,
-			ExchangeName:    "heywoods-es-log-exchange",
+			ExchangeName:    "es-log-exchange",
 			ExchangeKind:    "direct",
 			ExchangeDurable: true,
-			QueueName:       "heywoods-es-log-queue",
+			QueueName:       "es-log-queue",
 			QueueDurable:    true,
-			BindKey:         "heywoods-es-log-routingkey",
+			BindKey:         "es-log-routingkey",
 			DeliveryMode:    2,
 		})
 		if log.MqLogger != nil {
