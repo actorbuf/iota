@@ -10,6 +10,7 @@ require (
 	github.com/go-redis/cache/v8 v8.4.3
 	github.com/go-redis/redis/v8 v8.11.4
 	github.com/go-redis/redis_rate/v9 v9.1.2
+	github.com/google/uuid v1.3.0
 	github.com/json-iterator/go v1.1.12
 	github.com/klauspost/compress v1.14.1 // indirect
 	github.com/mattn/go-isatty v0.0.14 // indirect
