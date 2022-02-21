@@ -36,7 +36,8 @@ func initProducer(log *log) {
 		// 有配置用配的，没有用默认的
 		address := log.MaAddress
 		if address == "" {
-			address = "amqp://heywoods_es_log_consume:75IP3oFlZJGHWAhk@172.18.19.205:5672/heywoods_es_log_consume"
+			// TODO ADD address
+			address = ""
 		}
 		mq := new(rabbitmq.RabbitMQ).SetConfig(&rabbitmq.Config{
 			Address:         address,
