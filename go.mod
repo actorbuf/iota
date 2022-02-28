@@ -15,6 +15,7 @@ require (
 	github.com/klauspost/compress v1.14.1 // indirect
 	github.com/mattn/go-isatty v0.0.14 // indirect
 	github.com/opentracing/opentracing-go v1.2.0
+	github.com/pkg/errors v0.9.1
 	github.com/rabbitmq/amqp091-go v1.3.0
 	github.com/sirupsen/logrus v1.8.1
 	github.com/stretchr/objx v0.3.0 // indirect
@@ -22,6 +23,8 @@ require (
 	github.com/uber/jaeger-lib v2.4.1+incompatible // indirect
 	github.com/vmihailenco/msgpack/v5 v5.3.5 // indirect
 	github.com/xuri/excelize/v2 v2.5.0
+	go.etcd.io/etcd/api/v3 v3.5.2
+	go.etcd.io/etcd/client/v3 v3.5.2
 	go.mongodb.org/mongo-driver v1.8.3
 	go.opentelemetry.io/otel v1.3.0
 	go.opentelemetry.io/otel/bridge/opentracing v1.3.0
@@ -29,7 +32,7 @@ require (
 	go.opentelemetry.io/otel/sdk v1.3.0
 	go.opentelemetry.io/otel/trace v1.3.0
 	go.uber.org/atomic v1.9.0 // indirect
-	go.uber.org/zap v1.16.0
+	go.uber.org/zap v1.17.0
 	golang.org/x/crypto v0.0.0-20211215153901-e495a2d5b3d3 // indirect
 	golang.org/x/exp v0.0.0-20220104160115-025e73f80486 // indirect
 	golang.org/x/net v0.0.0-20220111093109-d55c255bac03 // indirect
